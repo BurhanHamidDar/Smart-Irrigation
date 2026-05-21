@@ -9,11 +9,11 @@
 #include "addons/RTDBHelper.h"
 
 // --- CONFIGURATION ---
-#define WIFI_SSID "Proxy-Network"
-#define WIFI_PASSWORD "Darburhan@admin1"
-#define API_KEY "AIzaSyCX7fV4-Gt-4vFZAtSm6jwn6TWpbc3bBu4"
-#define DATABASE_URL "https://smart-irrigation-e2db4-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define DATABASE_SECRET "umDLplMfd3h3tU6ybKOoMHEYua4VUknqQeyvQ2w0"
+#define WIFI_SSID "YOUR-WIFI-NAME"
+#define WIFI_PASSWORD "YOUR-WIFI-PASSWORD"
+#define API_KEY "FIREBASE-PROJECT-APIKEY"
+#define DATABASE_URL "https://your-firebase-db-url.asia-southeast1.firebasedatabase.app"
+#define DATABASE_SECRET "YOUR-FIREBASE-DB-SECRET"
 
 // --- HARDWARE PINS ---
 #define RELAY_PIN 5      // D1 on NodeMCU
