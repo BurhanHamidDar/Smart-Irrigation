@@ -1,0 +1,13 @@
+# Backup folders
+app.git_backup/
+
+# IDE/System files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
