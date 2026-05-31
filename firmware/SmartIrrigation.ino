@@ -8,33 +8,33 @@
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
-// --- CONFIGURATION ---
-#define WIFI_SSID "Proxy-Network"
-#define WIFI_PASSWORD "Darburhan@admin1"
-#define API_KEY "AIzaSyCX7fV4-Gt-4vFZAtSm6jwn6TWpbc3bBu4"
-#define DATABASE_URL "https://smart-irrigation-e2db4-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define DATABASE_SECRET "umDLplMfd3h3tU6ybKOoMHEYua4VUknqQeyvQ2w0"
+// configuration 
+#define WIFI_SSID "YOUR-WIFI-NAME"
+#define WIFI_PASSWORD "YOUR-WIFI-PASSWORD"
+#define API_KEY "FIREBASE-PROJECT-APIKEY"
+#define DATABASE_URL "https://your-firebase-db-url.asia-southeast1.firebasedatabase.app"
+#define DATABASE_SECRET "YOUR-FIREBASE-DB-SECRET"
 
-// --- HARDWARE PINS ---
+// hardware pins
 #define RELAY_PIN 5      // D1 on NodeMCU
 #define SENSOR_PIN A0    // Analog moisture sensor
 #define LED_PIN 2        // D4 (Onboard LED, active LOW)
 
-// --- RELAY LOGIC ---
+// relay logic
 #define RELAY_ON HIGH
 #define RELAY_OFF LOW
 
-// --- FIREBASE OBJECTS ---
+// firebase objects
 FirebaseData fbdoRead;
 FirebaseData fbdoWrite;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-// --- NTP & TIME ---
+// ntp and time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800); // 19800 = +5:30 IST
 
-// --- SCHEDULE CONFIG ---
+// scheduile config 
 #define MAX_SCHEDULES 5
 struct Schedule {
   int startHour;
@@ -47,7 +47,7 @@ int scheduleCount = 0;
 
 bool isCurrentlyScheduledWatering = false;
 
-// --- SYSTEM STATE ---
+// system state
 bool autoMode = false;
 int threshold = 600;
 const int HYSTERESIS = 50; 
@@ -55,7 +55,7 @@ int currentMoisture = 0;
 bool relayState = false;
 bool rainPredicted = false;
 
-// --- PUMP PROTECTION ---
+// pump protection 
 unsigned long pumpStartMillis = 0;
 bool isPumpRunning = false;
 bool pumpProtectionTriggered = false;
