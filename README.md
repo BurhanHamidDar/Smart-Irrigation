@@ -266,8 +266,7 @@ To restrict database access during production environments, apply the following 
 
 ## 👤 Credits & Authorship
 
-* **Lead Project Architect & Engineer**: Burhan Hamid
-* **Field Security Officer & Tester**: mudasir
-* **Development Partner**: Antigravity (Google DeepMind Team)
+* **Developed by**: Burhan Hamid
+
 
 This system is licensed under the [MIT License](LICENSE). Feel free to adapt and expand this smart automation suite for your own agricultural or residential smart watering systems!
