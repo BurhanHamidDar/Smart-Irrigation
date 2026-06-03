@@ -13,6 +13,18 @@ The system leverages real-time soil telemetry, meteorological forecasts, physica
 
 ---
 
+## 📸 Interface Showcases
+
+### 🖥️ Web Dashboard Overview
+![AgroFlow Web Dashboard Overview](screenshots/dashboard_overview.png)
+
+### 📱 Mobile Application Client
+| 📱 Splash Screen | 📱 Control Terminal | 📱 Schedule Configurator | 📱 Real-time System Logs |
+| :---: | :---: | :---: | :---: |
+| ![Mobile Splash](screenshots/mobile_splash.jpg) | ![Mobile Control](screenshots/mobile_control.jpg) | ![Mobile Schedule](screenshots/mobile_schedule.jpg) | ![Mobile Logs](screenshots/mobile_logs.jpg) |
+
+---
+
 ## 📐 System Architecture
 
 The ecosystem consists of three main sub-projects linked via a real-time database backbone:
