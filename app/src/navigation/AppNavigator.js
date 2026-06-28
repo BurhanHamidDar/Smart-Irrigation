@@ -5,6 +5,7 @@ import Splash from '../screens/Splash';
 import Login from '../screens/Login';
 import TabNavigator from './TabNavigator';
 import Weather from '../screens/Weather';
+import ChatbotScreen from '../screens/ChatbotScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -55,6 +56,19 @@ export default function AppNavigator() {
           headerTintColor: isDark ? '#f0fdf4' : '#14532d',
         }} 
       />
+      <Stack.Screen 
+        name="Advisor" 
+        component={ChatbotScreen} 
+        options={{ 
+          headerShown: true,
+          title: "AgroBot Advisor",
+          headerStyle: {
+            backgroundColor: isDark ? '#064e3b' : '#d1fae5',
+          },
+          headerTintColor: isDark ? '#f0fdf4' : '#065f46',
+        }} 
+      />
+
     </Stack.Navigator>
   );
 }

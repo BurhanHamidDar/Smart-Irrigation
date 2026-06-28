@@ -1,15 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, useColorScheme, ActivityIndicator, Alert, ScrollView, Image, TouchableOpacity, ImageBackground, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, useColorScheme, ActivityIndicator, Alert, ScrollView, Image, TouchableOpacity, Platform } from 'react-native';
 import { ref, onValue, set, push, get } from 'firebase/database';
 import { database } from '../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LogOut, CloudRain, CloudSun, MapPinOff, Thermometer } from 'lucide-react-native';
-import * as Location from 'expo-location';
+import { LogOut, CloudRain, CloudSun, MapPinOff, Thermometer, Bot, Leaf } from 'lucide-react-native';
 
 import MoistureCard from '../components/MoistureCard';
 import RelayControl from '../components/RelayControl';
 import AutoToggle from '../components/AutoToggle';
 import ThresholdSlider from '../components/ThresholdSlider';
+import KashmirSeasonalToggle from '../components/KashmirSeasonalToggle';
+
+const getKashmirSeasonInfo = () => {
+  const month = new Date().getMonth() + 1; // 1-12
+  if (month === 12 || month <= 2) {
+    return { name: 'Dormant / Wand', recommendedThreshold: 780 };
+  } else if (month >= 3 && month <= 4) {
+    return { name: 'Bud Break / Bahaar', recommendedThreshold: 640 };
+  } else if (month >= 5 && month <= 6) {
+    return { name: 'Fruit Set / Phal Lagna', recommendedThreshold: 580 };
+  } else if (month >= 7 && month <= 8) {
+    return { name: 'Fruit Development', recommendedThreshold: 520 };
+  } else {
+    return { name: 'Maturation / Harud', recommendedThreshold: 670 };
+  }
+};
 
 export default function Dashboard({ navigation }) {
   const isDark = useColorScheme() === 'dark';
@@ -26,7 +41,8 @@ export default function Dashboard({ navigation }) {
     threshold: 600,
     pumpProtection: { triggered: false },
     pumpStartTimeEpoch: 0,
-    maxRuntimeMinutes: 20
+    maxRuntimeMinutes: 20,
+    seasonalAuto: 0
   });
 
   const [currentEpoch, setCurrentEpoch] = useState(Math.floor(Date.now() / 1000));
@@ -36,7 +52,6 @@ export default function Dashboard({ navigation }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Track if we've already alerted the user to avoid spamming
   const [hasAlertedDry, setHasAlertedDry] = useState(false);
 
   useEffect(() => {
@@ -53,54 +68,73 @@ export default function Dashboard({ navigation }) {
         const lat = locData.latitude;
         const lon = locData.longitude;
 
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=precipitation_probability%2Ctemperature_2m%2Cweathercode&forecast_hours=12`;
-        const res = await fetch(url);
-        
-        if (!res.ok) {
-          throw new Error(`HTTP Error: ${res.status}`);
+        // 10-second timeout to avoid hanging on poor connectivity
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        try {
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=precipitation_probability%2Ctemperature_2m%2Cweathercode&forecast_hours=12`;
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+          
+          const json = await res.json();
+          const probabilities = json.hourly?.precipitation_probability || [0];
+          const maxChance = Math.max(...probabilities);
+          const rainPredicted = maxChance > 40;
+
+          const newWeather = {
+            rainPredicted,
+            rainChance: maxChance,
+            forecastWindowHours: 12,
+            currentTemp: json.current_weather?.temperature ?? 0,
+            weatherCode: json.current_weather?.weathercode ?? 0,
+            latitude: lat,
+            longitude: lon
+          };
+
+          set(ref(database, 'state/weather'), newWeather);
+          setWeatherData(newWeather);
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          // Network failed — fall back to last known Firebase weather data
+          const cachedSnap = await get(ref(database, 'state/weather'));
+          if (cachedSnap.exists()) {
+            setWeatherData(cachedSnap.val());
+          } else {
+            setWeatherData({ unconfigured: true });
+          }
         }
-        
-        const json = await res.json();
-        
-        const probabilities = json.hourly?.precipitation_probability || [0];
-        const maxChance = Math.max(...probabilities);
-        const rainPredicted = maxChance > 40; // 40% threshold for prediction
-
-        const newWeather = {
-          rainPredicted,
-          rainChance: maxChance,
-          forecastWindowHours: 12,
-          currentTemp: json.current_weather?.temperature ?? 0,
-          weatherCode: json.current_weather?.weathercode ?? 0,
-          latitude: lat,
-          longitude: lon
-        };
-
-        set(ref(database, 'state/weather'), newWeather);
-        setWeatherData(newWeather);
-
       } catch (error) {
-        console.error("Error fetching weather:", error);
+        console.warn('Weather fetch skipped:', error.message);
       }
     };
 
     fetchWeather();
-    const interval = setInterval(fetchWeather, 3600000); // 1 hour
+    const interval = setInterval(fetchWeather, 3600000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    // Listen for Firebase connection state (Online/Offline)
     const connectedRef = ref(database, '.info/connected');
     const unsubscribeConnected = onValue(connectedRef, (snap) => {
       setConnected(snap.val() === true);
     });
 
-    // Listen for all data at the state node
     const stateRef = ref(database, 'state');
     const unsubscribeData = onValue(stateRef, (snapshot) => {
-      const val = snapshot.val() || {}; // Handle empty state
-      
+      const val = snapshot.val() || {};
+      const seasonalVal = val.seasonalAuto || 0;
+      const thresholdVal = val.threshold || 600;
+
+      if (seasonalVal === 1) {
+        const seasonInfo = getKashmirSeasonInfo();
+        if (thresholdVal !== seasonInfo.recommendedThreshold) {
+          set(ref(database, 'state/threshold'), seasonInfo.recommendedThreshold);
+        }
+      }
+
       setData({
         moisture: val.moisture || 0,
         relay: val.relay || 0,
@@ -108,38 +142,31 @@ export default function Dashboard({ navigation }) {
         threshold: val.threshold || 600,
         pumpProtection: val.pumpProtection || { triggered: false },
         pumpStartTimeEpoch: val.pumpStartTimeEpoch || 0,
-        maxRuntimeMinutes: val.maxRuntimeMinutes || 20
+        maxRuntimeMinutes: val.maxRuntimeMinutes || 20,
+        seasonalAuto: seasonalVal
       });
 
       if (val.weather) {
         setWeatherData(val.weather);
       }
-
       setLoading(false);
-      
-      // Push Real Notifications to Firebase
-      // Drier = Lower number. Trigger alert if below 300.
-      if (val.moisture < 300 && val.auto === 0 && !hasAlertedDry) {
+
+      if (val.moisture > 700 && val.auto === 0 && !hasAlertedDry) {
         Alert.alert(
           "Orchard is Dry! 🍎", 
-          "Moisture levels are critical. Please turn on the pump or enable Auto Mode."
+          "Moisture levels are critical. Turn on the pump or enable Auto Mode."
         );
         setHasAlertedDry(true);
-        
-        // Log to database
-        const notifsRef = ref(database, 'notifications');
-        push(notifsRef, {
+        push(ref(database, 'notifications'), {
           type: 'alert',
           title: 'Critical Moisture Alert',
-          desc: `Moisture reached critical level (${val.moisture}). Auto-mode is OFF.`,
+          desc: `Soil moisture is critically low (raw sensor: ${val.moisture}). Auto-mode is OFF.`,
           timestamp: Date.now()
         });
-      } else if (val.moisture > 500) {
-        // Reset alert flag once watered (moisture > 500)
+      } else if (val.moisture < 500) {
         setHasAlertedDry(false);
       }
     }, (error) => {
-      console.error("Firebase error: ", error);
       Alert.alert("Connection Error", "Failed to sync with Firebase.");
     });
 
@@ -162,7 +189,6 @@ export default function Dashboard({ navigation }) {
   const togglePump = (newState) => {
     setData(prev => ({ ...prev, relay: newState }));
     set(ref(database, 'state/relay'), newState);
-    
     push(ref(database, 'notifications'), {
       type: 'info',
       title: `Pump Status: ${newState === 1 ? 'ACTIVE' : 'INACTIVE'}`,
@@ -172,9 +198,9 @@ export default function Dashboard({ navigation }) {
   };
 
   const handleToggleRelay = () => {
-    if (data.auto === 1) return; // Prevent manual toggle in auto mode
+    if (data.auto === 1) return;
     if (data.pumpProtection?.triggered) {
-      Alert.alert("Protection Active", "Cannot start pump while motor protection is active. Please reset the protection first.");
+      Alert.alert("Protection Active", "Cannot start pump while motor protection is active. Reset the protection first.");
       return;
     }
 
@@ -184,11 +210,7 @@ export default function Dashboard({ navigation }) {
         `There is a ${weatherData.rainChance}% chance of rain in the next ${weatherData.forecastWindowHours} hours.\n\nAre you sure you want to start manual irrigation?`,
         [
           { text: "Cancel", style: "cancel" },
-          { 
-            text: "Continue", 
-            onPress: () => togglePump(1),
-            style: "destructive"
-          }
+          { text: "Continue", onPress: () => togglePump(1), style: "destructive" }
         ]
       );
     } else {
@@ -200,8 +222,6 @@ export default function Dashboard({ navigation }) {
     const newState = value ? 1 : 0;
     setData(prev => ({ ...prev, auto: newState }));
     set(ref(database, 'state/auto'), newState);
-    
-    // Log auto mode change
     push(ref(database, 'notifications'), {
       type: 'info',
       title: `Automation: ${newState === 1 ? 'ON' : 'OFF'}`,
@@ -215,6 +235,24 @@ export default function Dashboard({ navigation }) {
     set(ref(database, 'state/threshold'), value);
   };
 
+  const handleToggleSeasonal = (value) => {
+    const newState = value ? 1 : 0;
+    setData(prev => ({ ...prev, seasonalAuto: newState }));
+    set(ref(database, 'state/seasonalAuto'), newState);
+    
+    if (newState === 1) {
+      const seasonInfo = getKashmirSeasonInfo();
+      set(ref(database, 'state/threshold'), seasonInfo.recommendedThreshold);
+    }
+    
+    push(ref(database, 'notifications'), {
+      type: 'info',
+      title: `Seasonal Auto: ${newState === 1 ? 'ON' : 'OFF'}`,
+      desc: `Kashmir seasonal automatic adjustment was toggled.`,
+      timestamp: Date.now()
+    });
+  };
+
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -222,8 +260,9 @@ export default function Dashboard({ navigation }) {
         text: "Logout", 
         style: "destructive", 
         onPress: async () => {
-          await AsyncStorage.removeItem('isLoggedIn');
-          navigation.replace('Login');
+            await AsyncStorage.removeItem('isLoggedIn');
+            await AsyncStorage.removeItem('cachedCredentials');
+            navigation.replace('Login');
         }
       }
     ]);
@@ -231,176 +270,179 @@ export default function Dashboard({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: theme.bg }]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: theme.pageBg }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
         <Text style={[styles.loadingText, { color: theme.subText }]}>Connecting to AgroFlow...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <ImageBackground 
-      source={require('../../assets/orchard_bg.png')} 
-      style={styles.background}
-      blurRadius={Platform.OS === 'ios' ? 8 : 4}
-    >
-      <View style={[styles.overlay, { backgroundColor: theme.overlayBg }]} />
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        
-        <View style={styles.header}>
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <Image 
-              source={require('../../assets/icon.png')} 
-              style={{ width: 32, height: 32, borderRadius: 8, marginRight: 10, borderWidth: 1, borderColor: theme.primary }} 
-            />
-            <Text style={[styles.title, { color: theme.text }]}>AGROFLOW</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.pageBg }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.cardBg} />
+      
+      <View style={[styles.header, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <View style={[styles.logoContainer, { backgroundColor: theme.primaryLight }]}>
+            <Leaf color={theme.primary} size={18} />
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statusContainer, { backgroundColor: theme.cardBg, borderColor: theme.headerBorder }]}>
-              <View style={[styles.statusDot, { backgroundColor: connected ? '#34d399' : '#ef4444' }]} />
-              <Text style={[styles.statusText, { color: theme.text }]}>
-                {connected ? 'Online' : 'Offline'}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={handleLogout} style={{ marginLeft: 16 }}>
-              <LogOut color={theme.text} size={22} />
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.title, { color: theme.text }]}>AgroFlow</Text>
         </View>
-
-        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 30 }}>
-          
-          <TouchableOpacity 
-            style={[styles.weatherCard, { backgroundColor: theme.cardBg, borderColor: theme.headerBorder }]}
-            onPress={() => weatherData && !weatherData.unconfigured && navigation.navigate('Weather')}
-            activeOpacity={0.8}
-          >
-            {weatherData ? (
-               weatherData.unconfigured ? (
-                  <View style={styles.weatherInner}>
-                    <MapPinOff color="#ea580c" size={32} style={{marginRight: 16}} />
-                    <View style={{flex: 1}}>
-                      <Text style={[styles.weatherTitle, {color: '#ea580c'}]}>
-                        Location Not Set
-                      </Text>
-                      <Text style={[styles.weatherSubtitle, {color: theme.text}]}>
-                        Tap to configure in Settings.
-                      </Text>
-                    </View>
-                  </View>
-               ) : (
-                  <View style={styles.weatherInner}>
-                    {weatherData.rainPredicted ? (
-                      <CloudRain color={theme.primary} size={32} style={{marginRight: 16}} />
-                    ) : (
-                      <CloudSun color="#15803d" size={32} style={{marginRight: 16}} />
-                    )}
-                    <View style={{flex: 1}}>
-                      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                        <Text style={[styles.weatherTitle, {color: weatherData.rainPredicted ? theme.primary : '#15803d'}]}>
-                          {weatherData.rainPredicted ? `Rain Predicted (${weatherData.rainChance}%)` : 'No Rain Expected'}
-                        </Text>
-                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                          <Thermometer color={theme.text} size={16} />
-                          <Text style={{color: theme.text, fontWeight: '900', fontSize: 16}}>
-                            {weatherData.currentTemp !== undefined ? `${Math.round(weatherData.currentTemp)}°` : '--°'}
-                          </Text>
-                        </View>
-                      </View>
-                      {weatherData.rainPredicted && data.auto === 1 ? (
-                        <Text style={[styles.weatherSubtitle, {color: theme.text}]}>
-                          Auto watering & schedules skipped.
-                        </Text>
-                      ) : (
-                        <Text style={[styles.weatherSubtitle, {color: theme.text}]}>
-                          Tap for detailed orchard forecast.
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-               )
-            ) : (
-               <View style={styles.weatherInner}>
-                 <ActivityIndicator color={theme.text} size="small" style={{marginRight: 12}} />
-                 <Text style={{color: theme.text, fontWeight: 'bold'}}>Fetching weather...</Text>
-               </View>
-            )}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={[styles.statusContainer, { backgroundColor: theme.pageBg, borderColor: theme.border }]}>
+            <View style={[styles.statusDot, { backgroundColor: connected ? '#2e7d52' : '#c0392b' }]} />
+            <Text style={[styles.statusText, { color: theme.text }]}>
+              {connected ? 'Online' : 'Offline'}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={handleLogout} style={{ marginLeft: 14 }}>
+            <LogOut color={theme.text} size={20} />
           </TouchableOpacity>
+        </View>
+      </View>
 
-          <MoistureCard moisture={data.moisture} />
-          
-          {data.pumpProtection?.triggered && (
-            <View style={{backgroundColor: 'rgba(254, 242, 242, 0.9)', borderColor: theme.danger, borderWidth: 1, padding: 16, borderRadius: 8, marginBottom: 16}}>
-              <Text style={{color: theme.danger, fontWeight: 'bold', fontSize: 16, marginBottom: 4}}>⚠️ Pump Protection Triggered</Text>
-              <Text style={{color: '#7f1d1d', marginBottom: 12}}>Pump stopped automatically to prevent motor damage after running continuously for {data.maxRuntimeMinutes} minutes.</Text>
-              <TouchableOpacity style={{backgroundColor: theme.danger, padding: 10, borderRadius: 6, alignItems: 'center'}} onPress={handleResetProtection}>
-                <Text style={{color: 'white', fontWeight: 'bold', letterSpacing: 1}}>RESET PROTECTION</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {!data.pumpProtection?.triggered && data.relay === 1 && data.pumpStartTimeEpoch > 0 && (
-             <View style={{backgroundColor: 'rgba(236, 253, 245, 0.9)', borderColor: '#10b981', borderWidth: 1, padding: 16, borderRadius: 8, marginBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-                <View>
-                  <Text style={{color: '#065f46', fontWeight: 'bold', fontSize: 16, marginBottom: 2}}>Pump is Running</Text>
-                  <Text style={{color: '#047857', fontWeight: '600'}}>
-                    Auto-shutdown in: {Math.max(0, Math.floor(((data.maxRuntimeMinutes * 60) - (currentEpoch - data.pumpStartTimeEpoch)) / 60))}m {Math.max(0, ((data.maxRuntimeMinutes * 60) - (currentEpoch - data.pumpStartTimeEpoch)) % 60)}s
-                  </Text>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 90 }}>
+        
+        <TouchableOpacity 
+          style={[styles.weatherCard, { backgroundColor: theme.cardBg, borderColor: theme.border }]}
+          onPress={() => weatherData && !weatherData.unconfigured && navigation.navigate('Weather')}
+          activeOpacity={0.8}
+        >
+          {weatherData ? (
+             weatherData.unconfigured ? (
+                <View style={styles.weatherInner}>
+                  <MapPinOff color="#ea580c" size={24} style={{marginRight: 12}} />
+                  <View style={{flex: 1}}>
+                    <Text style={[styles.weatherTitle, {color: '#ea580c'}]}>
+                      Location Not Set
+                    </Text>
+                    <Text style={[styles.weatherSubtitle, {color: theme.subText}]}>
+                      Tap to configure in Settings.
+                    </Text>
+                  </View>
                 </View>
-                <ActivityIndicator color="#10b981" />
+             ) : (
+                <View style={styles.weatherInner}>
+                  {weatherData.rainPredicted ? (
+                    <CloudRain color={theme.danger} size={28} style={{marginRight: 12}} />
+                  ) : (
+                    <CloudSun color="#2e7d52" size={28} style={{marginRight: 12}} />
+                  )}
+                  <View style={{flex: 1}}>
+                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <Text style={[styles.weatherTitle, {color: weatherData.rainPredicted ? theme.danger : '#2e7d52'}]}>
+                        {weatherData.rainPredicted ? `Rain Predicted (${weatherData.rainChance}%)` : 'Clear Sky Outlook'}
+                      </Text>
+                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <Thermometer color={theme.text} size={14} />
+                        <Text style={{color: theme.text, fontWeight: '600', fontSize: 14}}>
+                          {weatherData.currentTemp !== undefined ? `${Math.round(weatherData.currentTemp)}°C` : '--°C'}
+                        </Text>
+                      </View>
+                    </View>
+                    {weatherData.rainPredicted && data.auto === 1 ? (
+                      <Text style={[styles.weatherSubtitle, {color: theme.subText}]}>
+                        Auto watering suspended to save water.
+                      </Text>
+                    ) : (
+                      <Text style={[styles.weatherSubtitle, {color: theme.subText}]}>
+                        Tap for detailed orchard forecast.
+                      </Text>
+                    )}
+                  </View>
+                </View>
+             )
+          ) : (
+             <View style={styles.weatherInner}>
+               <ActivityIndicator color={theme.text} size="small" style={{marginRight: 10}} />
+               <Text style={{color: theme.text, fontWeight: '500'}}>Fetching weather...</Text>
              </View>
           )}
+        </TouchableOpacity>
 
-          <ThresholdSlider 
-            threshold={data.threshold} 
-            onValueChange={handleThresholdChange} 
-          />
-          
-          <View style={styles.row}>
-            <AutoToggle 
-              autoState={data.auto} 
-              onToggle={handleToggleAuto} 
-            />
-            <RelayControl 
-              relayState={data.relay} 
-              onToggle={handleToggleRelay} 
-              disabled={data.auto === 1}
-            />
+        <MoistureCard moisture={data.moisture} />
+        
+        {data.pumpProtection?.triggered && (
+          <View style={[styles.alertContainer, { backgroundColor: '#fef2f2', borderColor: '#fecaca' }]}>
+            <Text style={{color: '#c0392b', fontWeight: '700', fontSize: 14, marginBottom: 4}}>⚠️ Pump Protection Engaged</Text>
+            <Text style={{color: '#7f1d1d', fontSize: 12, marginBottom: 12}}>Pump stopped automatically to prevent motor damage after running continuously for {data.maxRuntimeMinutes} minutes.</Text>
+            <TouchableOpacity style={{backgroundColor: '#c0392b', padding: 10, borderRadius: 8, alignItems: 'center'}} onPress={handleResetProtection}>
+              <Text style={{color: 'white', fontWeight: '600', fontSize: 13}}>Reset Motor Protection</Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </ImageBackground>
+        )}
+
+        {!data.pumpProtection?.triggered && data.relay === 1 && data.pumpStartTimeEpoch > 0 && (
+           <View style={[styles.alertContainer, { backgroundColor: '#eaf7f0', borderColor: '#bbf7d0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+              <View>
+                <Text style={{color: '#2e7d52', fontWeight: '700', fontSize: 14, marginBottom: 2}}>Pump is Running</Text>
+                <Text style={{color: '#2e7d52', fontSize: 12}}>
+                  Shutdown in: {Math.max(0, Math.floor(((data.maxRuntimeMinutes * 60) - (currentEpoch - data.pumpStartTimeEpoch)) / 60))}m {Math.max(0, ((data.maxRuntimeMinutes * 60) - (currentEpoch - data.pumpStartTimeEpoch)) % 60)}s
+                </Text>
+              </View>
+              <ActivityIndicator color="#2e7d52" />
+           </View>
+        )}
+
+        <KashmirSeasonalToggle 
+          seasonalState={data.seasonalAuto} 
+          onToggle={handleToggleSeasonal} 
+        />
+
+        <ThresholdSlider 
+          threshold={data.threshold} 
+          onValueChange={handleThresholdChange} 
+          disabled={data.seasonalAuto === 1}
+        />
+        
+        <View style={styles.row}>
+          <AutoToggle 
+            autoState={data.auto} 
+            onToggle={handleToggleAuto} 
+          />
+          <RelayControl 
+            relayState={data.relay} 
+            onToggle={handleToggleRelay} 
+            disabled={data.auto === 1}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Floating Action Button for AI Advisor */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: theme.primary }]}
+        onPress={() => navigation.navigate('Advisor')}
+        activeOpacity={0.8}
+      >
+        <Bot color="#ffffff" size={24} />
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
 const lightTheme = {
-  overlayBg: 'rgba(240, 253, 244, 0.85)',
-  cardBg: 'rgba(255, 255, 255, 0.95)',
-  text: '#14532d',
-  subText: '#166534',
-  headerBorder: '#bbf7d0',
-  primary: '#dc2626'
+  pageBg: '#f4f6f0',
+  cardBg: '#ffffff',
+  text: '#1a2e1c',
+  subText: '#6b7b6e',
+  primary: '#4a7c59',
+  primaryLight: '#eaf2ec',
+  border: '#e8eceb',
+  danger: '#c0392b'
 };
 
 const darkTheme = {
-  overlayBg: 'rgba(2, 44, 34, 0.85)',
-  cardBg: 'rgba(2, 44, 34, 0.95)',
-  text: '#f0fdf4',
-  subText: '#a7f3d0',
-  headerBorder: '#065f46',
-  primary: '#ef4444'
+  pageBg: '#141a15',
+  cardBg: '#1e2720',
+  text: '#e8ede9',
+  subText: '#8a9e8d',
+  primary: '#5a9469',
+  primaryLight: '#1a2e1c',
+  border: '#2a3a2d',
+  danger: '#e74c3c'
 };
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   container: {
     flex: 1,
   },
@@ -409,45 +451,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '500',
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '550',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 4,
-    borderBottomColor: '#dc2626', // Apple red trim
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Translucent
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  logoContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontSize: 18,
+    fontWeight: '700',
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 6,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+    fontSize: 11,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -457,29 +501,50 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 20,
   },
   weatherCard: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
     elevation: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   weatherInner: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   weatherTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '600',
   },
   weatherSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
     marginTop: 2,
+  },
+  alertContainer: {
+    borderWidth: 1,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   }
 });

@@ -11,7 +11,7 @@ interface AnalyticsPageProps {
 
 export default function AnalyticsPage({ state, logs, theme }: AnalyticsPageProps) {
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-5 animate-fadeIn">
       <AnalyticsCharts 
         logs={logs}
         currentMoisture={state.moisture}

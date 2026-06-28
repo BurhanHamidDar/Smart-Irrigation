@@ -95,25 +95,26 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
 
   return (
     <div 
-      className="rounded-2xl p-6 border shadow-xl flex flex-col relative overflow-hidden group transition-all duration-300"
+      className="rounded-xl p-5 border flex flex-col"
       style={{ 
         backgroundColor: theme.cardBg, 
-        borderColor: theme.border,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardShadow,
         color: theme.text 
       }}
     >
       <div 
-        className="w-full flex items-center justify-between mb-4 pb-3 border-b transition-all duration-300"
-        style={{ borderBottomColor: theme.border }}
+        className="w-full flex items-center justify-between mb-4 pb-3 border-b"
+        style={{ borderBottomColor: theme.cardBorder }}
       >
         <div className="flex items-center gap-2">
-          <CalendarClock className="w-5 h-5" style={{ color: theme.primary }} />
-          <h2 className="text-sm font-bold tracking-widest uppercase">Automation Schedules</h2>
+          <CalendarClock className="w-4 h-4" style={{ color: theme.primary }} />
+          <h2 className="text-sm font-semibold">Automation Schedules</h2>
         </div>
         
         <button
           onClick={() => setModalVisible(true)}
-          className="p-1 rounded-lg text-white transition-all transform hover:scale-[1.05]"
+          className="p-1 rounded-lg text-white transition-colors cursor-pointer"
           style={{ backgroundColor: theme.primary }}
           title="Add New Schedule"
         >
@@ -124,30 +125,30 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
       {/* TODAY'S UPCOMING / ACTIVE HIGHLIGHT */}
       {upcomingList.length > 0 && (
         <div 
-          className="border rounded-xl p-4 mb-5 flex flex-col gap-2.5 transition-all duration-300"
+          className="border rounded-lg p-3.5 mb-4 flex flex-col gap-2"
           style={{ 
             backgroundColor: theme.inputBg, 
-            borderColor: theme.border 
+            borderColor: theme.cardBorder 
           }}
         >
-          <h4 className="text-[10px] font-black tracking-widest uppercase" style={{ color: theme.primary }}>
+          <h4 className="text-[10px] font-semibold uppercase" style={{ color: theme.primary }}>
             Next Irrigation Cycle
           </h4>
           {upcomingList.slice(0, 1).map((s, i) => (
             <div key={i} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className={`w-4 h-4 ${s.active ? 'animate-pulse' : ''}`} style={{ color: s.active ? theme.primary : theme.subText }} />
-                <span className="text-sm font-extrabold" style={{ color: theme.text }}>
+                <Clock className="w-4 h-4" style={{ color: s.active ? theme.primary : theme.subText }} />
+                <span className="text-xs font-semibold animate-none" style={{ color: theme.text }}>
                   {formatTime(s.startHour, s.startMinute)}
                 </span>
-                <span className="text-xs opacity-80" style={{ color: theme.subText }}>to {formatTime(s.stopHour, s.stopMinute)}</span>
+                <span className="text-xs" style={{ color: theme.subText }}>to {formatTime(s.stopHour, s.stopMinute)}</span>
               </div>
               <span 
-                className="text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded border transition-all"
+                className="text-[10px] font-semibold px-2 py-0.5 rounded border"
                 style={{ 
-                  backgroundColor: s.active ? theme.primary + '20' : theme.cardBg, 
-                  borderColor: s.active ? theme.primary : theme.border, 
-                  color: s.active ? theme.primary : theme.subText 
+                  backgroundColor: s.active ? '#eaf7f0' : theme.cardBg, 
+                  borderColor: s.active ? '#bbf7d0' : theme.cardBorder, 
+                  color: s.active ? '#2e7d52' : theme.subText 
                 }}
               >
                 {s.active ? 'Watering Active' : `In ${Math.floor(s.remainingMins / 60)}h ${s.remainingMins % 60}m`}
@@ -158,31 +159,31 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
       )}
 
       {/* SCHEDULES LIST */}
-      <div className="flex-1 space-y-3 max-h-[260px] overflow-y-auto pr-1">
+      <div className="flex-1 space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
         {schedules.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10" style={{ color: theme.subText }}>
-            <CalendarClock className="w-12 h-12 mb-3 opacity-60" strokeWidth={1} />
-            <p className="text-xs font-bold uppercase tracking-widest">No schedules configured</p>
-            <span className="text-[10px] lowercase opacity-85 mt-1">Maximum of 5 schedules allowed</span>
+            <CalendarClock className="w-10 h-10 mb-2 opacity-50" strokeWidth={1.5} />
+            <p className="text-xs font-semibold uppercase tracking-wider">No schedules configured</p>
+            <span className="text-[10px] opacity-70 mt-0.5">Maximum of 5 schedules allowed</span>
           </div>
         ) : (
           schedules.map((sched, index) => (
             <div 
               key={index}
-              className="flex items-center justify-between p-3.5 border rounded-xl transition-all duration-300"
+              className="flex items-center justify-between p-3 border rounded-lg"
               style={{ 
-                backgroundColor: sched.enabled ? theme.inputBg : theme.inputBg + '30', 
-                borderColor: theme.border,
+                backgroundColor: theme.inputBg, 
+                borderColor: theme.cardBorder,
                 color: sched.enabled ? theme.text : theme.subText
               }}
             >
               <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 shrink-0" style={{ color: sched.enabled ? theme.primary : theme.subText }} />
+                <Clock className="w-4.5 h-4.5 shrink-0" style={{ color: sched.enabled ? theme.primary : theme.subText }} />
                 <div>
-                  <span className="text-base font-extrabold tracking-wide block">
+                  <span className="text-sm font-semibold block">
                     {formatTime(sched.startHour, sched.startMinute)}
                   </span>
-                  <span className="text-[11px] font-medium opacity-80 block mt-0.5">
+                  <span className="text-xs opacity-75 block mt-0.5">
                     until {formatTime(sched.stopHour, sched.stopMinute)}
                   </span>
                 </div>
@@ -193,12 +194,12 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
                 <button
                   type="button"
                   onClick={() => handleToggleSchedule(index, !sched.enabled)}
-                  className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                  style={{ backgroundColor: sched.enabled ? theme.primary : theme.border }}
+                  className="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                  style={{ backgroundColor: sched.enabled ? theme.primary : theme.cardBorder }}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      sched.enabled ? 'translate-x-5' : 'translate-x-0'
+                    className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                      sched.enabled ? 'translate-x-4.5' : 'translate-x-0'
                     }`}
                   />
                 </button>
@@ -206,10 +207,10 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
                 {/* Delete button */}
                 <button
                   onClick={() => handleDeleteSchedule(index)}
-                  className="p-1 hover:text-red-500 transition-colors"
+                  className="p-1 hover:text-red-600 transition-colors"
                   style={{ color: theme.subText }}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -219,30 +220,33 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
 
       {/* ADD SCHEDULE MODAL */}
       {modalVisible && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
           <div 
-            className="max-w-sm w-full rounded-2xl p-6 border shadow-2xl animate-scaleUp transition-all duration-300"
+            className="max-w-sm w-full rounded-xl p-5 border shadow-lg"
             style={{ 
               backgroundColor: theme.cardBg, 
-              borderColor: theme.border,
+              borderColor: theme.cardBorder,
               color: theme.text 
             }}
           >
             <div 
-              className="flex items-center justify-between mb-5 pb-2 border-b transition-all duration-300"
-              style={{ borderBottomColor: theme.border }}
+              className="flex items-center justify-between mb-4 pb-2 border-b"
+              style={{ borderBottomColor: theme.cardBorder }}
             >
-              <h3 className="text-sm font-black tracking-widest uppercase" style={{ color: theme.primary }}>
+              <h3 className="text-sm font-semibold uppercase" style={{ color: theme.primary }}>
                 New Irrigation Schedule
               </h3>
               <button onClick={() => setModalVisible(false)} style={{ color: theme.subText }} className="hover:text-red-500">
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {showError || schedules.length >= 5 ? (
-              <div className="bg-red-950/20 border border-red-500/30 text-red-200 text-xs p-3 rounded-lg flex items-center gap-2 mb-4 animate-pulse">
-                <AlertOctagon className="w-5 h-5 shrink-0 text-red-500" />
+              <div 
+                className="border text-xs p-2.5 rounded-lg flex items-center gap-2 mb-4"
+                style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca', color: '#c0392b' }}
+              >
+                <AlertOctagon className="w-4 h-4 shrink-0 text-red-600" />
                 <span>Limit Reached! Maximum 5 automated schedules are allowed.</span>
               </div>
             ) : null}
@@ -251,7 +255,7 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
               {/* Start Time Selectors */}
               <div>
                 <label 
-                  className="block text-[10px] font-black uppercase tracking-wider mb-2"
+                  className="block text-[11px] font-semibold uppercase mb-1.5"
                   style={{ color: theme.subText }}
                 >
                   Start Time
@@ -260,23 +264,23 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
                   <select
                     value={startHour}
                     onChange={(e) => setStartHour(e.target.value)}
-                    className="flex-1 h-10 px-3 rounded-lg focus:outline-none text-sm font-bold border"
+                    className="flex-1 h-10 px-2.5 rounded-lg focus:outline-none text-sm font-semibold border"
                     style={{ 
                       backgroundColor: theme.inputBg, 
-                      borderColor: theme.border, 
+                      borderColor: theme.inputBorder, 
                       color: theme.text 
                     }}
                   >
                     {hoursList.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
-                  <span className="font-bold self-center" style={{ color: theme.primary }}>:</span>
+                  <span className="font-semibold self-center" style={{ color: theme.primary }}>:</span>
                   <select
                     value={startMinute}
                     onChange={(e) => setStartMinute(e.target.value)}
-                    className="flex-1 h-10 px-3 rounded-lg focus:outline-none text-sm font-bold border"
+                    className="flex-1 h-10 px-2.5 rounded-lg focus:outline-none text-sm font-semibold border"
                     style={{ 
                       backgroundColor: theme.inputBg, 
-                      borderColor: theme.border, 
+                      borderColor: theme.inputBorder, 
                       color: theme.text 
                     }}
                   >
@@ -288,7 +292,7 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
               {/* Stop Time Selectors */}
               <div>
                 <label 
-                  className="block text-[10px] font-black uppercase tracking-wider mb-2"
+                  className="block text-[11px] font-semibold uppercase mb-1.5"
                   style={{ color: theme.subText }}
                 >
                   Stop Time
@@ -297,23 +301,23 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
                   <select
                     value={stopHour}
                     onChange={(e) => setStopHour(e.target.value)}
-                    className="flex-1 h-10 px-3 rounded-lg focus:outline-none text-sm font-bold border"
+                    className="flex-1 h-10 px-2.5 rounded-lg focus:outline-none text-sm font-semibold border"
                     style={{ 
                       backgroundColor: theme.inputBg, 
-                      borderColor: theme.border, 
+                      borderColor: theme.inputBorder, 
                       color: theme.text 
                     }}
                   >
                     {hoursList.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
-                  <span className="font-bold self-center" style={{ color: theme.primary }}>:</span>
+                  <span className="font-semibold self-center" style={{ color: theme.primary }}>:</span>
                   <select
                     value={stopMinute}
                     onChange={(e) => setStopMinute(e.target.value)}
-                    className="flex-1 h-10 px-3 rounded-lg focus:outline-none text-sm font-bold border"
+                    className="flex-1 h-10 px-2.5 rounded-lg focus:outline-none text-sm font-semibold border"
                     style={{ 
                       backgroundColor: theme.inputBg, 
-                      borderColor: theme.border, 
+                      borderColor: theme.inputBorder, 
                       color: theme.text 
                     }}
                   >
@@ -322,28 +326,28 @@ export default function ScheduleManager({ schedules, setSchedulesList, theme }: 
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setModalVisible(false)}
-                  className="flex-1 py-2 rounded-lg border font-bold text-xs tracking-wider uppercase transition-all"
+                  className="flex-1 py-2 rounded-lg border font-medium text-xs transition-colors"
                   style={{ 
-                    borderColor: theme.border, 
+                    borderColor: theme.cardBorder, 
                     color: theme.subText 
                   }}
                 >
-                  CANCEL
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={schedules.length >= 5}
-                  className="flex-1 py-2 rounded-lg text-white font-extrabold text-xs tracking-wider uppercase border disabled:opacity-50 disabled:pointer-events-none transition-all"
+                  className="flex-1 py-2 rounded-lg text-white font-medium text-xs border disabled:opacity-50 disabled:pointer-events-none transition-colors"
                   style={{ 
                     backgroundColor: theme.primary, 
                     borderColor: theme.primary 
                   }}
                 >
-                  SAVE SCHEDULE
+                  Save Schedule
                 </button>
               </div>
             </form>

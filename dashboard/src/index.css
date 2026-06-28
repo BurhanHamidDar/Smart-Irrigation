@@ -1,31 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 @import "tailwindcss";
-
-@theme {
-  --color-forest-50: #f0fdf4;
-  --color-forest-100: #dcfce7;
-  --color-forest-200: #bbf7d0;
-  --color-forest-300: #86efac;
-  --color-forest-400: #4ade80;
-  --color-forest-500: #22c55e;
-  --color-forest-600: #16a34a;
-  --color-forest-700: #15803d;
-  --color-forest-800: #166534;
-  --color-forest-900: #14532d;
-  --color-forest-950: #022c22;
-
-  --color-apple-50: #fef2f2;
-  --color-apple-100: #fee2e2;
-  --color-apple-200: #fecaca;
-  --color-apple-300: #fca5a5;
-  --color-apple-400: #f87171;
-  --color-apple-500: #ef4444;
-  --color-apple-600: #dc2626;
-  --color-apple-700: #b91c1c;
-  --color-apple-800: #991b1b;
-  --color-apple-950: #450a0a;
-}
 
 body {
   font-family: 'Inter', sans-serif;
@@ -35,36 +10,53 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism custom styling utilities */
-.glass {
-  background: rgba(2, 44, 34, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid #065f46;
-}
-
-.glass-light {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(2, 44, 34, 0.1);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.3);
+  background: #d1d5db;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.5);
+  background: #9ca3af;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out both;
+}
+
+/* Range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a7c59;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }

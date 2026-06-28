@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   LogOut, Sun, Moon, Home, Droplet, Power, Calendar, 
-  CloudSun, BarChart3, Bell, Settings, Wifi, WifiOff, Menu, X 
+  CloudSun, BarChart3, Bell, Settings, Wifi, WifiOff, Bot, Leaf, Menu, X
 } from 'lucide-react';
 import { useFirebaseSync } from '../hooks/useFirebaseSync';
 import { AppTheme } from '../App';
@@ -14,6 +14,7 @@ import WeatherPage from './WeatherPage';
 import AnalyticsPage from './AnalyticsPage';
 import LogsPage from './LogsPage';
 import SettingsPage from './SettingsPage';
+import AdvisorPage from './AdvisorPage';
 
 interface DashboardPageProps {
   onLogout: () => void;
@@ -22,11 +23,23 @@ interface DashboardPageProps {
   toggleTheme: () => void;
 }
 
-type TabPage = 'overview' | 'moisture' | 'pump' | 'schedules' | 'weather' | 'analytics' | 'logs' | 'settings';
+type TabPage = 'overview' | 'moisture' | 'pump' | 'schedules' | 'weather' | 'analytics' | 'logs' | 'settings' | 'advisor';
+
+const navItems = [
+  { id: 'overview',   name: 'Overview',       icon: Home },
+  { id: 'moisture',   name: 'Moisture',        icon: Droplet },
+  { id: 'pump',       name: 'Pump Control',    icon: Power },
+  { id: 'schedules',  name: 'Schedules',       icon: Calendar },
+  { id: 'weather',    name: 'Weather',         icon: CloudSun },
+  { id: 'analytics',  name: 'Analytics',       icon: BarChart3 },
+  { id: 'logs',       name: 'Activity Logs',   icon: Bell },
+  { id: 'advisor',    name: 'AgroBot Advisor', icon: Bot },
+  { id: 'settings',   name: 'Settings',        icon: Settings },
+] as const;
 
 export default function DashboardPage({ onLogout, theme, isDark, toggleTheme }: DashboardPageProps) {
   const [activePage, setActivePage] = useState<TabPage>('overview');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const {
     loading,
@@ -43,393 +56,203 @@ export default function DashboardPage({ onLogout, theme, isDark, toggleTheme }: 
     resetPumpProtection,
     setSchedulesList,
     setOrchardLocation,
-    setWeatherState
+    setWeatherState,
+    setSeasonalAuto,
   } = useFirebaseSync();
 
-  const handleLogoutClick = () => {
-    if (confirm("Terminate Session?\nAre you sure you want to securely log out?")) {
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to log out?')) {
       localStorage.removeItem('isLoggedIn');
       onLogout();
     }
   };
 
+  const activeNav = navItems.find(n => n.id === activePage);
+
+  const renderPage = () => {
+    switch (activePage) {
+      case 'moisture':
+        return <MoisturePage state={state} deviceConnected={deviceConnected} lastCommunication={lastCommunication} theme={theme} setMoistureThreshold={setMoistureThreshold} setSeasonalAuto={setSeasonalAuto} />;
+      case 'pump':
+        return <PumpPage state={state} logs={logs} theme={theme} setPumpState={setPumpState} resetPumpProtection={resetPumpProtection} setMaxRuntimeMinutes={setMaxRuntimeMinutes} />;
+      case 'schedules':
+        return <SchedulesPage state={state} theme={theme} setSchedulesList={setSchedulesList} />;
+      case 'weather':
+        return <WeatherPage state={state} location={location} theme={theme} setOrchardLocation={setOrchardLocation} setWeatherState={setWeatherState} />;
+      case 'analytics':
+        return <AnalyticsPage state={state} logs={logs} theme={theme} />;
+      case 'logs':
+        return <LogsPage logs={logs} theme={theme} />;
+      case 'settings':
+        return <SettingsPage state={state} location={location} theme={theme} setOrchardLocation={setOrchardLocation} setMaxRuntimeMinutes={setMaxRuntimeMinutes} setMoistureThreshold={setMoistureThreshold} />;
+      case 'advisor':
+        return <AdvisorPage theme={theme} isDark={isDark} />;
+      case 'overview':
+      default:
+        return <OverviewPage state={state} deviceConnected={deviceConnected} lastCommunication={lastCommunication} logs={logs} theme={theme} setAutoMode={setAutoMode} setSeasonalAuto={setSeasonalAuto} setPage={(p) => setActivePage(p as TabPage)} />;
+    }
+  };
+
   if (loading) {
     return (
-      <div 
-        className="min-h-screen flex flex-col items-center justify-center bg-cover bg-center bg-no-repeat relative"
-        style={{ backgroundImage: `url('/orchard_bg.png')` }}
-      >
-        <div 
-          className="absolute inset-0 transition-all duration-300"
-          style={{ backgroundColor: theme.overlayBg, backdropFilter: 'blur(6px)' }}
-        ></div>
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
-          <span 
-            className="text-sm font-black tracking-widest uppercase mt-4 animate-pulse"
-            style={{ color: theme.text }}
-          >
-            Syncing AgroFlow Core...
-          </span>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.pageBg }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: theme.primary, borderTopColor: 'transparent' }}></div>
+          <span className="text-sm font-medium" style={{ color: theme.subText }}>Syncing AgroFlow...</span>
         </div>
       </div>
     );
   }
 
-  // Render active page module dynamically
-  const renderActivePageContent = () => {
-    switch (activePage) {
-      case 'moisture':
-        return (
-          <MoisturePage 
-            state={state}
-            deviceConnected={deviceConnected}
-            lastCommunication={lastCommunication}
-            theme={theme}
-            setMoistureThreshold={setMoistureThreshold}
-          />
-        );
-      case 'pump':
-        return (
-          <PumpPage 
-            state={state}
-            logs={logs}
-            theme={theme}
-            setPumpState={setPumpState}
-            resetPumpProtection={resetPumpProtection}
-            setMaxRuntimeMinutes={setMaxRuntimeMinutes}
-          />
-        );
-      case 'schedules':
-        return (
-          <SchedulesPage 
-            state={state}
-            theme={theme}
-            setSchedulesList={setSchedulesList}
-          />
-        );
-      case 'weather':
-        return (
-          <WeatherPage 
-            state={state}
-            location={location}
-            theme={theme}
-            setOrchardLocation={setOrchardLocation}
-            setWeatherState={setWeatherState}
-          />
-        );
-      case 'analytics':
-        return (
-          <AnalyticsPage 
-            state={state}
-            logs={logs}
-            theme={theme}
-          />
-        );
-      case 'logs':
-        return (
-          <LogsPage 
-            logs={logs}
-            theme={theme}
-          />
-        );
-      case 'settings':
-        return (
-          <SettingsPage 
-            state={state}
-            location={location}
-            theme={theme}
-            setOrchardLocation={setOrchardLocation}
-            setMaxRuntimeMinutes={setMaxRuntimeMinutes}
-            setMoistureThreshold={setMoistureThreshold}
-          />
-        );
-      case 'overview':
-      default:
-        return (
-          <OverviewPage 
-            state={state}
-            deviceConnected={deviceConnected}
-            lastCommunication={lastCommunication}
-            logs={logs}
-            theme={theme}
-            setAutoMode={setAutoMode}
-            setPage={(p) => setActivePage(p as TabPage)}
-          />
-        );
-    }
-  };
-
-  const navItems = [
-    { id: 'overview', name: 'Overview', icon: Home },
-    { id: 'moisture', name: 'Moisture', icon: Droplet },
-    { id: 'pump', name: 'Pump Control', icon: Power, statusDot: state.relay === 1 },
-    { id: 'schedules', name: 'Schedules', icon: Calendar },
-    { id: 'weather', name: 'Weather', icon: CloudSun },
-    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
-    { id: 'logs', name: 'Activity Logs', icon: Bell },
-    { id: 'settings', name: 'Settings', icon: Settings },
-  ] as const;
-
-  const getPageTitle = () => {
-    const activeItem = navItems.find(item => item.id === activePage);
-    return activeItem ? activeItem.name : 'Dashboard';
-  };
-
   return (
-    <div 
-      className="min-h-screen bg-cover bg-center bg-no-repeat relative text-white flex flex-col transition-all duration-300 md:flex-row"
-      style={{ 
-        backgroundImage: `url('/orchard_bg.png')`,
-        color: theme.text 
-      }}
-    >
-      {/* Blurred background overlay tint */}
-      <div 
-        className="fixed inset-0 z-0 backdrop-blur-[5px] transition-all duration-300"
-        style={{ backgroundColor: theme.overlayBg }}
-      ></div>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: theme.pageBg }}>
 
-      {/* MOBILE HEADER */}
-      <header 
-        className="relative z-20 w-full border-b-2 px-4 py-3.5 shadow-md flex items-center justify-between md:hidden transition-all duration-300 shrink-0"
-        style={{ 
-          backgroundColor: theme.cardBg, 
-          borderBottomColor: theme.primary 
-        }}
-      >
-        <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="AgroFlow Icon" className="w-8 h-8 rounded-lg border object-cover" style={{ borderColor: theme.primary }} />
-          <h1 className="text-base font-black tracking-widest uppercase">AGROFLOW</h1>
-        </div>
+      {/* ── SIDEBAR ─────────────────────────────────── */}
+      <>
+        {/* Mobile overlay */}
+        {mobileMenuOpen && (
+          <div
+            className="fixed inset-0 z-20 bg-black/40 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 rounded-lg border transition-all"
-            style={{ backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }}
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <button 
-            onClick={() => setSidebarOpen(prev => !prev)}
-            className="p-1.5 rounded-lg border focus:outline-none transition-all"
-            style={{ backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }}
-          >
-            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </button>
-        </div>
-      </header>
-
-      {/* COLLAPSIBLE SIDEBAR DRAWER (Desktop/Tablet & Mobile Menu Overlay) */}
-      <aside 
-        className={`fixed md:sticky top-0 left-0 h-full w-64 border-r shrink-0 z-30 flex flex-col justify-between transition-all duration-300 ease-in-out transform ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } md:translate-x-0`}
-        style={{ 
-          backgroundColor: theme.cardBg, 
-          borderColor: theme.border 
-        }}
-      >
-        <div className="flex flex-col flex-1 min-h-0">
-          
-          {/* Sidebar branding */}
-          <div 
-            className="hidden md:flex items-center gap-3 px-6 py-6 border-b"
-            style={{ borderBottomColor: theme.border }}
-          >
-            <img 
-              src="/logo.png" 
-              alt="AgroFlow Icon" 
-              className="w-9 h-9 rounded-xl shadow-md object-cover border"
-              style={{ borderColor: theme.primary }}
-            />
+        <aside
+          className={`
+            fixed md:static inset-y-0 left-0 z-30
+            flex flex-col w-60 shrink-0 h-screen
+            transition-transform duration-300 ease-in-out
+            ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          `}
+          style={{ backgroundColor: theme.sidebarBg }}
+        >
+          {/* Logo */}
+          <div className="flex items-center gap-3 px-6 py-6 shrink-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary }}>
+              <Leaf className="w-4 h-4 text-white" />
+            </div>
             <div>
-              <h1 className="text-lg font-black tracking-wider uppercase" style={{ color: theme.text }}>
-                AGROFLOW
-              </h1>
-              <span className="text-[9px] tracking-widest font-extrabold uppercase block" style={{ color: theme.subText }}>
-                Orchard System
-              </span>
+              <span className="text-sm font-bold tracking-wide" style={{ color: theme.sidebarText }}>AgroFlow</span>
+              <span className="block text-[10px] font-medium" style={{ color: theme.sidebarSubText }}>Orchard System</span>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto select-none">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activePage === item.id;
-              
+          {/* Nav */}
+          <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto py-2">
+            {navItems.map(({ id, name, icon: Icon }) => {
+              const isActive = activePage === id;
               return (
                 <button
-                  key={item.id}
-                  onClick={() => {
-                    setActivePage(item.id);
-                    setSidebarOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase transition-all duration-200 border cursor-pointer focus:outline-none"
+                  key={id}
+                  onClick={() => { setActivePage(id as TabPage); setMobileMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-left"
                   style={{
-                    backgroundColor: isActive ? theme.primary : 'transparent',
-                    borderColor: isActive ? theme.primary : 'transparent',
-                    color: isActive ? '#ffffff' : theme.text
+                    backgroundColor: isActive ? theme.sidebarActiveBg : 'transparent',
+                    color: isActive ? theme.sidebarActive : theme.sidebarSubText,
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.name}</span>
-                  </div>
-                  
-                  {/* Status dot indicator (for active pump Control tab) */}
-                  {'statusDot' in item && item.statusDot && (
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse border border-white/20"></span>
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{name}</span>
+                  {/* Pump running dot */}
+                  {id === 'pump' && state.relay === 1 && (
+                    <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   )}
                 </button>
               );
             })}
           </nav>
-        </div>
 
-        {/* Sidebar Footer and Officer status */}
-        <div 
-          className="p-4 border-t flex flex-col gap-3 shrink-0"
-          style={{ borderTopColor: theme.border }}
-        >
-          {/* Officer clearance profile */}
-          <div className="flex items-center gap-2.5 px-2 py-1">
-            <div className="w-7 h-7 rounded-full text-xs font-black flex items-center justify-center text-white shrink-0 shadow-md" style={{ backgroundColor: theme.primary }}>
-              M
+          {/* Sidebar footer */}
+          <div className="px-3 py-4 shrink-0 border-t" style={{ borderColor: '#2a3a2d' }}>
+            <div className="flex items-center gap-3 px-3 py-2 mb-2">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: theme.primary }}>
+                M
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold truncate" style={{ color: theme.sidebarText }}>mudasir</p>
+                <p className="text-[10px]" style={{ color: theme.sidebarSubText }}>Orchard Owner</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <span className="text-xs font-black uppercase tracking-wider block truncate" style={{ color: theme.text }}>
-                mudasir
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-widest opacity-80 block truncate" style={{ color: theme.subText }}>
-                Administrator
-              </span>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
+              style={{ color: theme.sidebarSubText }}
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </aside>
+      </>
+
+      {/* ── MAIN AREA ───────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Top bar */}
+        <header
+          className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
+          style={{ backgroundColor: theme.cardBg, borderColor: theme.cardBorder }}
+        >
+          <div className="flex items-center gap-3">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-1.5 rounded-lg md:hidden"
+              style={{ color: theme.subText }}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-base font-semibold" style={{ color: theme.text }}>
+                {activeNav?.name ?? 'Dashboard'}
+              </h1>
+              <p className="text-xs" style={{ color: theme.subText }}>AgroFlow Irrigation System</p>
             </div>
           </div>
 
-          <button
-            onClick={handleLogoutClick}
-            className="w-full h-10 rounded-xl font-black text-xs tracking-widest uppercase flex items-center justify-center gap-2 text-white border hover:opacity-90 transition-all shrink-0 cursor-pointer"
-            style={{ 
-              backgroundColor: theme.primary, 
-              borderColor: theme.primary 
-            }}
-          >
-            <LogOut className="w-4 h-4" /> LOGOUT
-          </button>
-        </div>
-      </aside>
-
-      {/* MOBILE OVERLAY SHADOW BACKGROUND */}
-      {sidebarOpen && (
-        <div 
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden"
-        ></div>
-      )}
-
-      {/* MAIN VIEWPORT BODY CONTAINER */}
-      <div className="relative z-10 flex-1 flex flex-col min-w-0 overflow-y-auto h-full">
-        
-        {/* GLOBAL HEADER (Desktop only) */}
-        <header 
-          className="hidden md:flex items-center justify-between px-8 py-5 border-b shadow-md transition-all duration-300 shrink-0 select-none"
-          style={{ 
-            backgroundColor: theme.cardBg, 
-            borderBottomColor: theme.border 
-          }}
-        >
-          {/* Page title indicator */}
-          <h2 className="text-base font-black tracking-widest uppercase" style={{ color: theme.text }}>
-            {getPageTitle()}
-          </h2>
-
-          <div className="flex items-center gap-4">
-            {/* Database Connection */}
-            <div 
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] tracking-wider uppercase font-black transition-all ${
-                firebaseConnected ? 'text-emerald-400' : 'text-red-400 animate-pulse'
-              }`}
-              style={{ backgroundColor: theme.inputBg, borderColor: theme.border }}
+          <div className="flex items-center gap-3">
+            {/* DB status */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+              style={{
+                backgroundColor: firebaseConnected ? '#eaf7f0' : '#fef2f2',
+                color: firebaseConnected ? '#2e7d52' : '#c0392b',
+              }}
             >
-              <span className={`w-2 h-2 rounded-full ${firebaseConnected ? 'bg-emerald-400' : 'bg-red-500'}`}></span>
-              DB: {firebaseConnected ? 'Online' : 'Offline'}
+              <span className={`w-1.5 h-1.5 rounded-full ${firebaseConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              {firebaseConnected ? 'Database Online' : 'Database Offline'}
             </div>
 
-            {/* ESP Device Connection */}
-            <div 
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] tracking-wider uppercase font-black transition-all ${
-                deviceConnected ? 'text-emerald-400' : 'text-red-400 animate-pulse'
-              }`}
-              style={{ backgroundColor: theme.inputBg, borderColor: theme.border }}
+            {/* ESP status */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+              style={{
+                backgroundColor: deviceConnected ? '#eaf7f0' : '#fef2f2',
+                color: deviceConnected ? '#2e7d52' : '#c0392b',
+              }}
             >
-              {deviceConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-              ESP: {deviceConnected ? 'Connected' : 'Disconnected'}
+              {deviceConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              ESP {deviceConnected ? 'Online' : 'Offline'}
             </div>
 
-            {/* Light/Dark Toggle */}
+            {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg border transition-all duration-200 shadow-md shrink-0 cursor-pointer"
-              style={{ 
-                backgroundColor: theme.inputBg, 
-                borderColor: theme.border, 
-                color: theme.text 
-              }}
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="w-8 h-8 rounded-lg flex items-center justify-center border transition-colors"
+              style={{ borderColor: theme.cardBorder, backgroundColor: theme.inputBg, color: theme.subText }}
+              title={isDark ? 'Light mode' : 'Dark mode'}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
         </header>
 
-        {/* PRIMARY MAIN VIEWPANE PAGE */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8 overflow-y-auto">
-          {renderActivePageContent()}
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-7xl mx-auto animate-fadeIn">
+            {renderPage()}
+          </div>
         </main>
-
-        {/* BOTTOM FIXED TABS BAR (Mobile only) */}
-        <nav 
-          className="sticky bottom-0 left-0 w-full border-t flex items-center justify-around md:hidden py-2 px-1 z-25 shrink-0 shadow-2xl transition-all duration-300"
-          style={{ 
-            backgroundColor: theme.cardBg, 
-            borderColor: theme.border 
-          }}
-        >
-          {navItems.slice(0, 5).map((item) => {
-            const Icon = item.icon;
-            const isActive = activePage === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActivePage(item.id)}
-                className="flex flex-col items-center justify-center gap-1 focus:outline-none p-1.5"
-                style={{ color: isActive ? theme.primary : theme.subText }}
-              >
-                <div className="relative">
-                  <Icon className="w-5 h-5 shrink-0" />
-                  {'statusDot' in item && item.statusDot && (
-                    <span className="absolute -top-1.5 -right-1.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  )}
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-wider scale-90">{item.name.split(' ')[0]}</span>
-              </button>
-            );
-          })}
-          
-          {/* More menu drawer trigger */}
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex flex-col items-center justify-center gap-1 focus:outline-none p-1.5"
-            style={{ color: theme.subText }}
-          >
-            <Menu className="w-5 h-5 shrink-0" />
-            <span className="text-[8px] font-black uppercase tracking-wider scale-90">More</span>
-          </button>
-        </nav>
       </div>
     </div>
   );

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image, ImageBackground } from 'react-native';
-import { ref, get, set } from 'firebase/database';
-import { database } from '../config/firebase';
-import { Lock, User, Eye, EyeOff } from 'lucide-react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image, StatusBar } from 'react-native';
+import { database, DATABASE_URL } from '../config/firebase';
+import { Lock, User, Eye, EyeOff, Leaf } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Login({ navigation }) {
@@ -15,7 +14,6 @@ export default function Login({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    // Trim whitespace to prevent accidental failed logins
     const cleanUsername = username.trim().toLowerCase();
     const cleanPassword = password.trim();
 
@@ -26,64 +24,100 @@ export default function Login({ navigation }) {
 
     setLoading(true);
     try {
-      const credsRef = ref(database, 'credentials');
-      const snapshot = await get(credsRef);
-      
-      if (!snapshot.exists()) {
-        // First time setup - pushing default credentials to Firebase
+      const cachedRaw = await AsyncStorage.getItem('cachedCredentials');
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached.username === cleanUsername && cached.password === cleanPassword) {
+          await AsyncStorage.setItem('isLoggedIn', 'true');
+          navigation.replace('Dashboard');
+          return;
+        }
+      }
+
+      const dbUrl = DATABASE_URL;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      let response;
+      try {
+        response = await fetch(`${dbUrl}/credentials.json`, {
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP_${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data) {
         if (cleanUsername === 'mudasir' && cleanPassword === 'mudasir@123') {
-          await set(credsRef, { username: cleanUsername, password: cleanPassword });
+          await fetch(`${dbUrl}/credentials.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: cleanUsername, password: cleanPassword }),
+          });
+          await AsyncStorage.setItem('cachedCredentials', JSON.stringify({ username: cleanUsername, password: cleanPassword }));
           await AsyncStorage.setItem('isLoggedIn', 'true');
           navigation.replace('Dashboard');
         } else {
           Alert.alert('Error', 'Invalid initial credentials. Use default admin access.');
         }
+      } else if (data.username === cleanUsername && data.password === cleanPassword) {
+        await AsyncStorage.setItem('cachedCredentials', JSON.stringify({ username: cleanUsername, password: cleanPassword }));
+        await AsyncStorage.setItem('isLoggedIn', 'true');
+        navigation.replace('Dashboard');
       } else {
-        // Validate against existing credentials
-        const data = snapshot.val();
-        if (data.username === cleanUsername && data.password === cleanPassword) {
-          await AsyncStorage.setItem('isLoggedIn', 'true');
-          navigation.replace('Dashboard');
-        } else {
-          Alert.alert('Authentication Failed', 'Incorrect username or password.');
-        }
+        Alert.alert('Authentication Failed', 'Incorrect username or password.');
       }
+
     } catch (error) {
-      Alert.alert('Network Error', 'Could not connect to Firebase.');
-      console.error(error);
+      if (error.name === 'AbortError') {
+        Alert.alert(
+          'Cannot Reach Server',
+          'Connection timed out. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert('Error', `Could not connect: ${error.message}`);
+        console.error('Login error:', error);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ImageBackground 
-      source={require('../../assets/orchard_bg.png')} 
-      style={styles.background}
-      blurRadius={Platform.OS === 'ios' ? 8 : 4}
-    >
-      <View style={[styles.overlay, { backgroundColor: theme.overlayBg }]} />
-      
+    <View style={[styles.container, { backgroundColor: theme.pageBg }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.pageBg} />
       <KeyboardAvoidingView 
-        style={styles.container} 
+        style={styles.keyboardContainer} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
-          <View style={styles.header}>
-            <Image 
-              source={require('../../assets/icon.png')} 
-              style={{ width: 72, height: 72, borderRadius: 16, marginBottom: 16, borderWidth: 2, borderColor: theme.primary }} 
-            />
-            <Text style={[styles.title, { color: theme.text }]}>AGROFLOW</Text>
-            <Text style={[styles.subtitle, { color: theme.subText }]}>Apple Orchard System</Text>
-            <Text style={[styles.creditText, { color: theme.subText, marginTop: 8 }]}>Developed by Burhan Hamid</Text>
+        <View style={styles.header}>
+          <View style={[styles.logoContainer, { backgroundColor: theme.primaryLight }]}>
+            <Leaf color={theme.primary} size={32} />
           </View>
+          <Text style={[styles.title, { color: theme.text }]}>AgroFlow</Text>
+          <Text style={[styles.subtitle, { color: theme.subText }]}>Smart Orchard System</Text>
+        </View>
 
-          <View style={styles.inputContainer}>
-            <User color={theme.icon} size={20} style={styles.inputIconLeft} />
+        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>Sign In</Text>
+          <Text style={[styles.cardSubtitle, { color: theme.subText }]}>Access orchard controllers</Text>
+
+          <View style={styles.space} />
+
+          <View style={styles.inputLabelContainer}>
+            <Text style={[styles.inputLabel, { color: theme.subText }]}>Username</Text>
+          </View>
+          <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <User color={theme.subText} size={18} style={styles.inputIconLeft} />
             <TextInput
-              style={[styles.input, { color: theme.text, backgroundColor: theme.inputBg }]}
-              placeholder="Username"
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Enter username"
               placeholderTextColor={theme.subText}
               value={username}
               onChangeText={setUsername}
@@ -92,11 +126,14 @@ export default function Login({ navigation }) {
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Lock color={theme.icon} size={20} style={styles.inputIconLeft} />
+          <View style={styles.inputLabelContainer}>
+            <Text style={[styles.inputLabel, { color: theme.subText }]}>Password</Text>
+          </View>
+          <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <Lock color={theme.subText} size={18} style={styles.inputIconLeft} />
             <TextInput
-              style={[styles.input, { color: theme.text, backgroundColor: theme.inputBg, paddingRight: 48 }]}
-              placeholder="Password"
+              style={[styles.input, { color: theme.text, paddingRight: 48 }]}
+              placeholder="Enter password"
               placeholderTextColor={theme.subText}
               value={password}
               onChangeText={setPassword}
@@ -107,9 +144,9 @@ export default function Login({ navigation }) {
               onPress={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff color={theme.icon} size={20} />
+                <EyeOff color={theme.subText} size={18} />
               ) : (
-                <Eye color={theme.icon} size={20} />
+                <Eye color={theme.subText} size={18} />
               )}
             </TouchableOpacity>
           </View>
@@ -118,137 +155,154 @@ export default function Login({ navigation }) {
             style={[styles.button, { backgroundColor: theme.primary }, loading && styles.buttonDisabled]} 
             onPress={handleLogin}
             disabled={loading}
+            activeOpacity={0.9}
           >
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.buttonText}>SECURE LOGIN</Text>
+              <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
         </View>
+
+        <Text style={[styles.developerCredit, { color: theme.subText }]}>
+          Developed by Burhan Hamid · Solo Developer
+        </Text>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const lightTheme = {
-  overlayBg: 'rgba(240, 253, 244, 0.85)', // Light green tint
-  cardBg: 'rgba(255, 255, 255, 0.95)',
-  text: '#14532d', // Deep Forest Green
-  subText: '#166534',
-  inputBg: '#f0fdf4',
-  icon: '#15803d',
-  primary: '#dc2626', // Apple Red
-  border: '#bbf7d0'
+  pageBg: '#f4f6f0',
+  cardBg: '#ffffff',
+  text: '#1a2e1c',
+  subText: '#6b7b6e',
+  inputBg: '#f4f6f0',
+  inputBorder: '#dde3de',
+  primary: '#4a7c59',
+  primaryLight: '#eaf2ec',
+  border: '#e8eceb'
 };
 
 const darkTheme = {
-  overlayBg: 'rgba(2, 44, 34, 0.85)', // Dark forest tint
-  cardBg: 'rgba(2, 44, 34, 0.95)',
-  text: '#f0fdf4',
-  subText: '#a7f3d0',
-  inputBg: '#064e3b',
-  icon: '#34d399',
-  primary: '#ef4444', // Apple Red
-  border: '#065f46'
+  pageBg: '#141a15',
+  cardBg: '#1e2720',
+  text: '#e8ede9',
+  subText: '#8a9e8d',
+  inputBg: '#162019',
+  inputBorder: '#2a3a2d',
+  primary: '#5a9469',
+  primaryLight: '#1a2e1c',
+  border: '#2a3a2d'
 };
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   container: {
+    flex: 1,
+  },
+  keyboardContainer: {
     flex: 1,
     justifyContent: 'center',
     padding: 24,
   },
-  card: {
-    padding: 32,
-    borderRadius: 16, // Softer Apple aesthetic
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-  },
   header: {
-    marginBottom: 32,
     alignItems: 'center',
+    marginBottom: 32,
+  },
+  logoContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
+    fontSize: 24,
+    fontWeight: '700',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  creditText: {
-    fontSize: 12,
     fontWeight: '500',
-    opacity: 0.8,
-    letterSpacing: 0.5,
+  },
+  card: {
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  space: {
+    height: 8,
+  },
+  inputLabelContainer: {
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
     position: 'relative',
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   inputIconLeft: {
     position: 'absolute',
-    left: 16,
+    left: 14,
     zIndex: 1,
   },
   inputIconRight: {
     position: 'absolute',
-    right: 16,
+    right: 14,
     zIndex: 1,
     padding: 4,
   },
   input: {
     flex: 1,
-    height: 60,
-    borderRadius: 12, 
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    paddingLeft: 48,
-    paddingRight: 16,
-    fontSize: 16,
+    height: '100%',
+    paddingLeft: 44,
+    paddingRight: 14,
+    fontSize: 14,
     fontWeight: '500',
   },
   button: {
-    height: 60,
-    borderRadius: 12, 
+    height: 48,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
-    elevation: 4,
-    shadowColor: '#dc2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  developerCredit: {
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 32,
   }
 });

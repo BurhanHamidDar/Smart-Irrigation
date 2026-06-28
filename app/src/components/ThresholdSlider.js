@@ -3,16 +3,23 @@ import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Settings2 } from 'lucide-react-native';
 
-export default function ThresholdSlider({ threshold, onValueChange }) {
+export default function ThresholdSlider({ threshold, onValueChange, disabled }) {
   const isDark = useColorScheme() === 'dark';
   const theme = isDark ? darkTheme : lightTheme;
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, opacity: disabled ? 0.55 : 1 }]}>
       <View style={styles.header}>
-        <Settings2 color="#f59e0b" size={24} />
+        <View style={[styles.iconContainer, { backgroundColor: theme.inputBg }]}>
+          <Settings2 color={theme.primary} size={18} />
+        </View>
         <Text style={[styles.title, { color: theme.text }]}>Moisture Threshold</Text>
-        <Text style={styles.valueBadge}>{threshold}</Text>
+        <Text style={[
+          styles.valueBadge,
+          { backgroundColor: theme.primaryLight, color: theme.primary, borderColor: theme.primaryLight }
+        ]}>
+          {threshold}
+        </Text>
       </View>
       
       <Slider
@@ -22,13 +29,22 @@ export default function ThresholdSlider({ threshold, onValueChange }) {
         step={10}
         value={threshold}
         onSlidingComplete={onValueChange}
-        minimumTrackTintColor="#f59e0b"
-        maximumTrackTintColor={isDark ? '#374151' : '#e5e7eb'}
-        thumbTintColor="#f59e0b"
+        disabled={disabled}
+        minimumTrackTintColor={disabled ? theme.border : theme.primary}
+        maximumTrackTintColor={isDark ? '#2a3a2d' : '#e8eceb'}
+        thumbTintColor={disabled ? theme.subText : theme.primary}
       />
       
+      <View style={styles.ticksContainer}>
+        <Text style={[styles.tickLabel, { color: theme.subText }]}>Wet (300)</Text>
+        <Text style={[styles.tickLabel, { color: theme.subText }]}>Dry (900)</Text>
+      </View>
+
       <Text style={[styles.helperText, { color: theme.subText }]}>
-        Auto turns PUMP ON when sensor exceeds {threshold}
+        {disabled 
+          ? "Locked: Controlled by Kashmir Seasonal Mode" 
+          : `Auto starts pump when sensor exceeds threshold`
+        }
       </Text>
     </View>
   );
@@ -36,58 +52,81 @@ export default function ThresholdSlider({ threshold, onValueChange }) {
 
 const lightTheme = {
   cardBg: '#ffffff',
-  text: '#1e3a8a', // Navy
-  subText: '#475569',
-  border: '#cbd5e1'
+  text: '#1a2e1c',
+  subText: '#6b7b6e',
+  border: '#e8eceb',
+  inputBg: '#f4f6f0',
+  primary: '#4a7c59',
+  primaryLight: '#eaf2ec'
 };
 
 const darkTheme = {
-  cardBg: '#1e293b',
-  text: '#f8fafc',
-  subText: '#94a3b8',
-  border: '#334155'
+  cardBg: '#1e2720',
+  text: '#e8ede9',
+  subText: '#8a9e8d',
+  border: '#2a3a2d',
+  inputBg: '#162019',
+  primary: '#5a9469',
+  primaryLight: '#1a2e1c'
 };
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 4, // Sharp
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 24,
-    marginBottom: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
     elevation: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
     flex: 1,
   },
   valueBadge: {
-    backgroundColor: '#ffedd5', // Light orange
-    color: '#ea580c', // Saffron
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderWidth: 1,
-    borderColor: '#fdba74',
-    borderRadius: 4, // Sharp
-    fontWeight: 'bold',
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: '600',
     overflow: 'hidden',
   },
   slider: {
     width: '100%',
-    height: 40,
+    height: 36,
+  },
+  ticksContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    marginBottom: 8,
+  },
+  tickLabel: {
+    fontSize: 10,
+    fontWeight: '550',
   },
   helperText: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase'
+    marginTop: 4,
+    fontWeight: '500',
   }
 });

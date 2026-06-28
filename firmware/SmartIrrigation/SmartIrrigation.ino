@@ -9,11 +9,11 @@
 #include "addons/RTDBHelper.h"
 
 // configuration 
-#define WIFI_SSID "YOUR-WIFI-NAME"
-#define WIFI_PASSWORD "YOUR-WIFI-PASSWORD"
-#define API_KEY "FIREBASE-PROJECT-APIKEY"
-#define DATABASE_URL "https://your-firebase-db-url.asia-southeast1.firebasedatabase.app"
-#define DATABASE_SECRET "YOUR-FIREBASE-DB-SECRET"
+#define WIFI_SSID "Proxy-Network"
+#define WIFI_PASSWORD "Darburhan@admin1"
+#define API_KEY "AIzaSyCX7fV4-Gt-4vFZAtSm6jwn6TWpbc3bBu4"
+#define DATABASE_URL "https://smart-irrigation-e2db4-default-rtdb.asia-southeast1.firebasedatabase.app"
+#define DATABASE_SECRET "umDLplMfd3h3tU6ybKOoMHEYua4VUknqQeyvQ2w0"
 
 // hardware pins
 #define RELAY_PIN 5      // D1 on NodeMCU
@@ -271,15 +271,15 @@ void loop() {
     if (autoMode && !isCurrentlyScheduledWatering) {
       bool shouldPumpBeOn = relayState;
       
-      // Sensor goes LOW when dry, HIGH when wet
-      if (currentMoisture < threshold) {
+      // Sensor goes HIGH when dry, LOW when wet
+      if (currentMoisture > threshold) {
         if (rainPredicted) {
           shouldPumpBeOn = false; // Block auto watering if rain predicted
         } else {
-          shouldPumpBeOn = true;  // Too dry -> Pump ON
+          shouldPumpBeOn = true;  // Too dry (above threshold) -> Pump ON
         }
-      } else if (currentMoisture > (threshold + HYSTERESIS)) {
-        shouldPumpBeOn = false; // Wet enough -> Pump OFF
+      } else if (currentMoisture < (threshold - HYSTERESIS)) {
+        shouldPumpBeOn = false; // Wet enough (below threshold - HYSTERESIS) -> Pump OFF
       }
       
       if (shouldPumpBeOn != relayState) {

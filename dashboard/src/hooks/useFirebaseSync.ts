@@ -31,11 +31,26 @@ export interface SystemState {
   relay: number;
   auto: number;
   threshold: number;
+  seasonalAuto: number;
   pumpProtection: PumpProtection;
   pumpStartTimeEpoch: number;
   maxRuntimeMinutes: number;
   schedules: Schedule[];
   weather?: WeatherData;
+}
+
+// Kashmir orchard seasonal thresholds (raw ADC — higher = drier)
+const KASHMIR_SEASONS = [
+  { name: 'Dormant / Wand', months: [12, 1, 2], threshold: 780, description: 'Deep winter rest. Minimal irrigation required.' },
+  { name: 'Bud Break / Bahaar', months: [3, 4], threshold: 640, description: 'Buds awakening. Moderate moisture needed.' },
+  { name: 'Fruit Set / Phal Lagna', months: [5, 6], threshold: 580, description: 'Critical growth phase. Consistent moisture essential.' },
+  { name: 'Fruit Development', months: [7, 8], threshold: 520, description: 'Peak demand season. Daily irrigation monitoring.' },
+  { name: 'Maturation / Harud', months: [9, 10, 11], threshold: 670, description: 'Pre-harvest. Taper water to improve fruit quality.' },
+];
+
+export function getKashmirSeasonInfo() {
+  const month = new Date().getMonth() + 1;
+  return KASHMIR_SEASONS.find(s => s.months.includes(month)) || KASHMIR_SEASONS[0];
 }
 
 export interface SystemLog {
@@ -62,6 +77,7 @@ export function useFirebaseSync() {
     relay: 0,
     auto: 0,
     threshold: 600,
+    seasonalAuto: 0,
     pumpProtection: { triggered: false },
     pumpStartTimeEpoch: 0,
     maxRuntimeMinutes: 20,
@@ -100,12 +116,21 @@ export function useFirebaseSync() {
         relay: typeof val.relay === 'number' ? val.relay : 0,
         auto: typeof val.auto === 'number' ? val.auto : 0,
         threshold: typeof val.threshold === 'number' ? val.threshold : 600,
+        seasonalAuto: typeof val.seasonalAuto === 'number' ? val.seasonalAuto : 0,
         pumpProtection: val.pumpProtection || { triggered: false },
         pumpStartTimeEpoch: typeof val.pumpStartTimeEpoch === 'number' ? val.pumpStartTimeEpoch : 0,
         maxRuntimeMinutes: typeof val.maxRuntimeMinutes === 'number' ? val.maxRuntimeMinutes : 20,
         schedules: Array.isArray(val.schedules) ? val.schedules : val.schedules ? Object.values(val.schedules) : [],
         weather: val.weather || undefined,
       };
+
+      // If seasonal auto mode is ON, apply the recommended Kashmir threshold automatically
+      if (parsedState.seasonalAuto === 1) {
+        const season = getKashmirSeasonInfo();
+        if (parsedState.threshold !== season.threshold) {
+          set(ref(database, 'state/threshold'), season.threshold);
+        }
+      }
 
       // Set last communication to now
       const now = new Date();
@@ -255,16 +280,16 @@ export function useFirebaseSync() {
     // 3. Pump Protection Triggered log (if protection value changes to triggered)
     // Handled in relay transition stop above
 
-    // 4. Critical moisture alert (below 300)
-    if ((prevMoisture === null || prevMoisture >= 300) && newState.moisture < 300 && newState.auto === 0) {
-      const desc = `Moisture reached critical level (${newState.moisture}). Auto-mode is OFF.`;
+    // 4. Critical dry moisture alert (raw ADC above 700 = critically dry soil)
+    if ((prevMoisture === null || prevMoisture <= 700) && newState.moisture > 700 && newState.auto === 0) {
+      const desc = `Soil moisture is critically low (raw sensor: ${newState.moisture}). Auto-mode is OFF — manual action required.`;
       await pushLogIfUnique({
         type: 'alert',
-        title: 'Critical Moisture Alert',
+        title: 'Critical Dry Soil Alert',
         desc,
         timestamp: Date.now(),
       });
-      triggerBrowserNotification('Critical Moisture Alert 🍎', desc);
+      triggerBrowserNotification('Critical Dry Soil Alert 🍎', desc);
     }
   };
 
@@ -330,6 +355,14 @@ export function useFirebaseSync() {
     set(ref(database, 'state/weather'), weather);
   };
 
+  const setSeasonalAuto = (newState: number) => {
+    set(ref(database, 'state/seasonalAuto'), newState);
+    if (newState === 1) {
+      const season = getKashmirSeasonInfo();
+      set(ref(database, 'state/threshold'), season.threshold);
+    }
+  };
+
   const triggerBrowserNotification = (title: string, body: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, {
@@ -355,5 +388,6 @@ export function useFirebaseSync() {
     setSchedulesList,
     setOrchardLocation,
     setWeatherState,
+    setSeasonalAuto,
   };
 }

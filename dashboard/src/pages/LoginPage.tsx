@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ref, get, set } from 'firebase/database';
 import { database } from '../config/firebase';
-import { Lock, User, Eye, EyeOff, ShieldAlert, Sun, Moon } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, Leaf, Sun, Moon } from 'lucide-react';
 import { AppTheme } from '../App';
 
 interface LoginPageProps {
@@ -18,36 +18,26 @@ export default function LoginPage({ onLoginSuccess, theme, isDark, toggleTheme }
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Clear errors when typing
-  useEffect(() => {
-    setErrorMsg('');
-  }, [username, password]);
+  useEffect(() => { setErrorMsg(''); }, [username, password]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUsername = username.trim().toLowerCase();
     const cleanPassword = password.trim();
-
-    if (!cleanUsername || !cleanPassword) {
-      setErrorMsg('Please enter both username and password.');
-      return;
-    }
+    if (!cleanUsername || !cleanPassword) { setErrorMsg('Please enter both username and password.'); return; }
 
     setLoading(true);
     setErrorMsg('');
-
     try {
       const credsRef = ref(database, 'credentials');
       const snapshot = await get(credsRef);
-
       if (!snapshot.exists()) {
-        // First-time setup: push default credentials if matches mudasir/mudasir@123
         if (cleanUsername === 'mudasir' && cleanPassword === 'mudasir@123') {
           await set(credsRef, { username: cleanUsername, password: cleanPassword });
           localStorage.setItem('isLoggedIn', 'true');
           onLoginSuccess();
         } else {
-          setErrorMsg('No credentials found in database. To perform first-time setup, use default credentials.');
+          setErrorMsg('No credentials found. Use default credentials for first-time setup.');
         }
       } else {
         const data = snapshot.val();
@@ -55,145 +45,113 @@ export default function LoginPage({ onLoginSuccess, theme, isDark, toggleTheme }
           localStorage.setItem('isLoggedIn', 'true');
           onLoginSuccess();
         } else {
-          setErrorMsg('Authentication failed. Incorrect username or password.');
+          setErrorMsg('Incorrect username or password.');
         }
       }
     } catch (err) {
-      console.error(err);
-      setErrorMsg('Network error. Failed to connect to Firebase database.');
+      setErrorMsg('Network error. Could not connect to the database.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative p-4 transition-all duration-300"
-      style={{ backgroundImage: `url('/orchard_bg.png')` }}
-    >
-      {/* Dynamic blurred overlay tint matching overlayBg */}
-      <div 
-        className="absolute inset-0 backdrop-blur-[4px] transition-all duration-300"
-        style={{ backgroundColor: theme.overlayBg }}
-      ></div>
-
-      {/* Floating Theme Switcher */}
-      <button
-        onClick={toggleTheme}
-        className="absolute top-6 right-6 z-20 p-2.5 rounded-xl border backdrop-blur-md transition-all duration-200"
-        style={{ 
-          backgroundColor: theme.cardBg, 
-          borderColor: theme.border, 
-          color: theme.text 
-        }}
-        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+    <div className="min-h-screen flex" style={{ backgroundColor: theme.pageBg }}>
+      {/* Left panel — decorative */}
+      <div
+        className="hidden lg:flex flex-col justify-between w-[420px] shrink-0 p-10"
+        style={{ backgroundColor: theme.sidebarBg }}
       >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary }}>
+            <Leaf className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-sm font-bold" style={{ color: theme.sidebarText }}>AgroFlow</span>
+        </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div 
-          className="rounded-2xl overflow-hidden p-8 md:p-10 shadow-2xl border transition-all duration-300"
-          style={{ 
-            backgroundColor: theme.cardBg, 
-            borderColor: theme.border 
-          }}
+        <div>
+          <h2 className="text-3xl font-bold leading-snug mb-4" style={{ color: theme.sidebarText }}>
+            Smart Irrigation<br />for Kashmir Orchards
+          </h2>
+          <p className="text-sm leading-relaxed" style={{ color: theme.sidebarSubText }}>
+            Real-time soil monitoring, automated pump control, weather-based irrigation, and AI-powered farming advice — all in one place.
+          </p>
+        </div>
+
+        <p className="text-xs" style={{ color: theme.sidebarSubText }}>
+          Developed by Burhan Hamid · AgroFlow v1.0
+        </p>
+      </div>
+
+      {/* Right panel — login form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="absolute top-6 right-6 w-9 h-9 rounded-lg border flex items-center justify-center transition-colors"
+          style={{ borderColor: theme.cardBorder, backgroundColor: theme.cardBg, color: theme.subText }}
         >
-          <div className="flex flex-col items-center mb-8">
-            <img 
-              src="/logo.png" 
-              alt="AgroFlow Logo" 
-              className="w-[72px] h-[72px] rounded-2xl shadow-lg object-cover mb-4 border-2"
-              style={{ borderColor: theme.primary }}
-            />
-            <h1 
-              className="text-2xl font-black tracking-widest uppercase mt-2"
-              style={{ color: theme.text }}
-            >
-              AGROFLOW
-            </h1>
-            <p 
-              className="text-xs font-bold tracking-widest uppercase mt-1"
-              style={{ color: theme.subText }}
-            >
-              Apple Orchard System
-            </p>
-            <span 
-              className="text-[10px] tracking-wider font-semibold mt-1 opacity-80"
-              style={{ color: theme.subText }}
-            >
-              Developed by Burhan Hamid
-            </span>
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
+
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-8 lg:hidden">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary }}>
+              <Leaf className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-base font-bold" style={{ color: theme.text }}>AgroFlow</span>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <h1 className="text-2xl font-bold mb-1" style={{ color: theme.text }}>Welcome back</h1>
+          <p className="text-sm mb-8" style={{ color: theme.subText }}>Sign in to your orchard dashboard</p>
+
+          <form onSubmit={handleLogin} className="space-y-4">
             {errorMsg && (
-              <div className="flex items-start gap-2 bg-red-950/20 border border-red-500/30 text-red-200 text-sm p-3 rounded-lg animate-pulse">
-                <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <span>{errorMsg}</span>
+              <div
+                className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm"
+                style={{ backgroundColor: '#fef2f2', color: '#c0392b', border: '1px solid #fecaca' }}
+              >
+                {errorMsg}
               </div>
             )}
 
             <div>
-              <label 
-                className="block text-xs font-bold uppercase tracking-widest mb-2"
-                style={{ color: theme.subText }}
-              >
-                Operator Username
-              </label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.subText }}>Username</label>
               <div className="relative">
-                <User 
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" 
-                  style={{ color: theme.subText }}
-                />
-                <input 
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.subText }} />
+                <input
                   type="text"
-                  placeholder="Username"
+                  placeholder="Enter username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={e => setUsername(e.target.value)}
                   disabled={loading}
-                  className="w-full h-12 pl-12 pr-4 rounded-xl border focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all font-semibold"
-                  style={{ 
-                    backgroundColor: theme.inputBg, 
-                    borderColor: theme.border, 
-                    color: theme.text 
-                  }}
+                  className="w-full h-11 pl-10 pr-4 rounded-lg border text-sm font-medium focus:outline-none transition-colors"
+                  style={{ backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }}
                 />
               </div>
             </div>
 
             <div>
-              <label 
-                className="block text-xs font-bold uppercase tracking-widest mb-2"
-                style={{ color: theme.subText }}
-              >
-                Security Password
-              </label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.subText }}>Password</label>
               <div className="relative">
-                <Lock 
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" 
-                  style={{ color: theme.subText }}
-                />
-                <input 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.subText }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   disabled={loading}
-                  className="w-full h-12 pl-12 pr-12 rounded-xl border focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all font-semibold"
-                  style={{ 
-                    backgroundColor: theme.inputBg, 
-                    borderColor: theme.border, 
-                    color: theme.text 
-                  }}
+                  className="w-full h-11 pl-10 pr-10 rounded-lg border text-sm font-medium focus:outline-none transition-colors"
+                  style={{ backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 focus:outline-none p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
                   style={{ color: theme.subText }}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -201,14 +159,13 @@ export default function LoginPage({ onLoginSuccess, theme, isDark, toggleTheme }
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 mt-6 rounded-xl text-white font-black tracking-widest uppercase shadow-lg transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full h-11 rounded-lg text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
               style={{ backgroundColor: theme.primary }}
             >
-              {loading ? (
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                'SECURE LOGIN'
-              )}
+              {loading
+                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                : 'Sign In'
+              }
             </button>
           </form>
         </div>

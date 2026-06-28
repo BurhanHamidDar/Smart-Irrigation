@@ -47,10 +47,10 @@ export default function PumpPage({
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       
       {/* COLUMN 1: LIVE OVERRIDES CONTROL */}
-      <div className="lg:col-span-1 space-y-6">
+      <div className="lg:col-span-1 space-y-5">
         <PumpControlCard 
           relay={state.relay}
           autoMode={state.auto}
@@ -67,26 +67,26 @@ export default function PumpPage({
 
         {/* RUNTIME PROTECTION CONFIGURATION */}
         <div 
-          className="border rounded-2xl p-6 shadow-xl flex flex-col justify-between transition-all duration-300"
-          style={{ backgroundColor: theme.cardBg, borderColor: theme.border, color: theme.text }}
+          className="border rounded-xl p-5"
+          style={{ backgroundColor: theme.cardBg, borderColor: theme.cardBorder, boxShadow: theme.cardShadow, color: theme.text }}
         >
           <div 
-            className="flex items-center gap-3 mb-4 pb-2 border-b"
-            style={{ borderBottomColor: theme.border }}
+            className="flex items-center gap-2 mb-4 pb-2 border-b"
+            style={{ borderBottomColor: theme.cardBorder }}
           >
-            <Timer className="w-5 h-5 shrink-0" style={{ color: theme.primary }} />
+            <Timer className="w-4 h-4 shrink-0" style={{ color: theme.primary }} />
             <div>
-              <h3 className="text-xs font-black tracking-wider uppercase">
+              <h3 className="text-sm font-semibold">
                 Motor Safety Limits
               </h3>
-              <p className="text-[10px] mt-0.5 font-semibold" style={{ color: theme.subText }}>
-                Toggles automated trip if continuous duration exceeds limit
+              <p className="text-xs" style={{ color: theme.subText }}>
+                Auto turns off pump if running limit is exceeded
               </p>
             </div>
           </div>
 
           <div className="py-1">
-            <label className="block text-[10px] font-black uppercase mb-2" style={{ color: theme.subText }}>
+            <label className="block text-xs font-semibold mb-2" style={{ color: theme.subText }}>
               Continuous Limit (Minutes)
             </label>
             <div className="flex gap-2">
@@ -96,28 +96,28 @@ export default function PumpPage({
                 onChange={(e) => setRuntime(e.target.value)}
                 min="1"
                 max="120"
-                className="flex-1 h-10 px-3 rounded-lg focus:outline-none text-sm font-bold border"
+                className="flex-1 h-10 px-3 rounded-lg focus:outline-none text-sm font-semibold border"
                 style={{ 
                   backgroundColor: theme.inputBg, 
-                  borderColor: theme.border, 
+                  borderColor: theme.inputBorder, 
                   color: theme.text 
                 }}
               />
               <button
                 onClick={handleSaveRuntime}
-                className="h-10 px-4 rounded-lg text-white font-extrabold text-xs tracking-wider uppercase border transition-all"
+                className="h-10 px-4 rounded-lg text-white font-medium text-xs border transition-colors cursor-pointer"
                 style={{ 
                   backgroundColor: theme.primary, 
                   borderColor: theme.primary 
                 }}
               >
-                SAVE
+                Save
               </button>
             </div>
             
-            <div className="h-6 flex justify-end items-center mt-3">
+            <div className="h-6 flex justify-end items-center mt-2">
               {runtimeSuccess && (
-                <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
                   <Check className="w-3.5 h-3.5" /> Protection Updated
                 </span>
               )}
@@ -128,55 +128,56 @@ export default function PumpPage({
 
       {/* COLUMN 2: TARGETED PUMP HISTORY LOGS */}
       <div 
-        className="lg:col-span-2 border rounded-2xl p-6 shadow-xl flex flex-col relative overflow-hidden transition-all duration-300 h-[480px]"
+        className="lg:col-span-2 border rounded-xl p-5 flex flex-col h-[480px]"
         style={{ 
           backgroundColor: theme.cardBg, 
-          borderColor: theme.border,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardShadow,
           color: theme.text 
         }}
       >
         <div 
           className="w-full flex items-center justify-between mb-4 pb-3 border-b"
-          style={{ borderBottomColor: theme.border }}
+          style={{ borderBottomColor: theme.cardBorder }}
         >
           <div className="flex items-center gap-2">
-            <Bell className="w-5 h-5" style={{ color: theme.primary }} />
-            <h2 className="text-sm font-bold tracking-widest uppercase">Pump Activity logs</h2>
+            <Bell className="w-4 h-4" style={{ color: theme.primary }} />
+            <h2 className="text-sm font-semibold">Pump Activity Logs</h2>
           </div>
-          <span className="text-[10px] font-black tracking-widest uppercase" style={{ color: theme.subText }}>
+          <span className="text-xs" style={{ color: theme.subText }}>
             Overrides History
           </span>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+        <div className="flex-1 space-y-2.5 overflow-y-auto pr-1">
           {pumpLogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20" style={{ color: theme.subText }}>
-              <ShieldAlert className="w-12 h-12 mb-3 opacity-60" strokeWidth={1} />
-              <p className="text-xs font-bold uppercase tracking-widest">No pump logs found</p>
-              <span className="text-[10px] opacity-75 mt-1">Manual and schedule runs will appear here</span>
+              <ShieldAlert className="w-10 h-10 mb-2 opacity-50 animate-none" strokeWidth={1.5} />
+              <p className="text-xs font-semibold uppercase tracking-wider">No pump logs found</p>
+              <span className="text-xs opacity-70 mt-0.5">Manual and schedule runs will appear here</span>
             </div>
           ) : (
             pumpLogs.map((log) => (
               <div 
                 key={log.id} 
-                className="p-3.5 rounded-xl border flex gap-3 transition-all duration-300"
+                className="p-3 rounded-lg border flex gap-3"
                 style={{ 
-                  backgroundColor: log.type === 'alert' ? 'rgba(239, 68, 68, 0.08)' : theme.inputBg, 
-                  borderColor: theme.border,
+                  backgroundColor: log.type === 'alert' ? '#fef2f2' : theme.inputBg, 
+                  borderColor: log.type === 'alert' ? '#fecaca' : theme.cardBorder,
                   color: theme.text
                 }}
               >
-                <Power className="w-5 h-5 shrink-0" style={{ color: log.type === 'alert' ? theme.primary : '#10b981' }} />
+                <Power className="w-4.5 h-4.5 shrink-0" style={{ color: log.type === 'alert' ? theme.danger : '#2e7d52' }} />
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline gap-2">
-                    <h4 className="text-xs font-black tracking-wide uppercase truncate">
+                    <h4 className="text-xs font-semibold truncate" style={{ color: log.type === 'alert' ? '#c0392b' : theme.text }}>
                       {log.title}
                     </h4>
-                    <span className="text-[9px] font-semibold shrink-0" style={{ color: theme.subText }}>
+                    <span className="text-[10px] font-semibold shrink-0" style={{ color: theme.subText }}>
                       {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <p className="text-xs leading-relaxed mt-1 font-semibold" style={{ color: theme.subText }}>
+                  <p className="text-xs mt-0.5" style={{ color: theme.subText }}>
                     {log.desc}
                   </p>
                 </div>

@@ -72,7 +72,7 @@ export default function WeatherPage({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       
       {/* COLUMN 1: LIVE WEATHER DISPLAY */}
       <div className="lg:col-span-2">
@@ -85,27 +85,28 @@ export default function WeatherPage({
         />
       </div>
 
-      {/* COLUMN 2: LOCATION COORDINATES SYSTEM CONFIG */}
+      {/* COLUMN 2: LOCATION SYSTEM CONFIG */}
       <div 
-        className="lg:col-span-1 border rounded-2xl p-6 shadow-xl flex flex-col justify-between transition-all duration-300"
+        className="lg:col-span-1 border rounded-xl p-5 flex flex-col justify-between"
         style={{ 
           backgroundColor: theme.cardBg, 
-          borderColor: theme.border,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardShadow,
           color: theme.text 
         }}
       >
         <div>
           <div 
-            className="flex items-center gap-3 mb-5 pb-2 border-b"
-            style={{ borderBottomColor: theme.border }}
+            className="flex items-center gap-2 mb-4 pb-2 border-b"
+            style={{ borderBottomColor: theme.cardBorder }}
           >
-            <MapPin className="w-5 h-5 shrink-0" style={{ color: theme.primary }} />
+            <MapPin className="w-4 h-4 shrink-0" style={{ color: theme.primary }} />
             <div>
-              <h3 className="text-xs font-black tracking-wider uppercase">
-                Location Settings (GPS)
+              <h3 className="text-sm font-semibold">
+                Location Settings
               </h3>
-              <p className="text-[10px] mt-0.5 font-semibold" style={{ color: theme.subText }}>
-                Configures coordinates for hourly rain overlays
+              <p className="text-xs" style={{ color: theme.subText }}>
+                Configures coordinates for rain forecast check
               </p>
             </div>
           </div>
@@ -113,7 +114,7 @@ export default function WeatherPage({
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[9px] font-black uppercase mb-1" style={{ color: theme.subText }}>Latitude</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.subText }}>Latitude</label>
                 <input 
                   type="text"
                   value={lat}
@@ -122,13 +123,13 @@ export default function WeatherPage({
                   className="w-full h-10 px-3 rounded-lg focus:outline-none text-xs font-semibold border"
                   style={{ 
                     backgroundColor: theme.inputBg, 
-                    borderColor: theme.border, 
+                    borderColor: theme.inputBorder, 
                     color: theme.text 
                   }}
                 />
               </div>
               <div>
-                <label className="block text-[9px] font-black uppercase mb-1" style={{ color: theme.subText }}>Longitude</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.subText }}>Longitude</label>
                 <input 
                   type="text"
                   value={lon}
@@ -137,7 +138,7 @@ export default function WeatherPage({
                   className="w-full h-10 px-3 rounded-lg focus:outline-none text-xs font-semibold border"
                   style={{ 
                     backgroundColor: theme.inputBg, 
-                    borderColor: theme.border, 
+                    borderColor: theme.inputBorder, 
                     color: theme.text 
                   }}
                 />
@@ -147,22 +148,22 @@ export default function WeatherPage({
             <div className="flex gap-2 pt-2">
               <button
                 onClick={handleSaveLocation}
-                className="flex-1 h-10 rounded-lg text-white font-extrabold text-xs tracking-wider uppercase border transition-all"
+                className="flex-1 h-10 rounded-lg text-white font-medium text-xs border transition-colors cursor-pointer"
                 style={{ 
                   backgroundColor: theme.primary, 
                   borderColor: theme.primary 
                 }}
               >
-                SAVE LOCATION
+                Save Location
               </button>
               
               <button
                 onClick={handleGetCurrentLocation}
                 disabled={locating}
-                className="h-10 px-3.5 rounded-lg border font-extrabold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
+                className="h-10 px-3.5 rounded-lg border font-medium text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0 cursor-pointer"
                 style={{ 
                   backgroundColor: theme.inputBg, 
-                  borderColor: theme.border, 
+                  borderColor: theme.cardBorder, 
                   color: theme.text 
                 }}
                 title="Fetch Browser Geolocation"
@@ -174,9 +175,9 @@ export default function WeatherPage({
           </div>
         </div>
 
-        <div className="h-6 flex justify-end items-center mt-6">
+        <div className="h-6 flex justify-end items-center mt-4">
           {locationSuccess && (
-            <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+            <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
               <Check className="w-3.5 h-3.5" /> Coordinates Synced
             </span>
           )}

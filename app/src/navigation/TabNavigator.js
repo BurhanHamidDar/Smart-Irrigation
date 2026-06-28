@@ -1,12 +1,13 @@
 import React from 'react';
 import { useColorScheme } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { LayoutDashboard, Bell, Settings as SettingsIcon, CalendarClock } from 'lucide-react-native';
+import { LayoutDashboard, Bell, Settings as SettingsIcon, CalendarClock, BookOpen } from 'lucide-react-native';
 
 import Dashboard from '../screens/Dashboard';
 import Notifications from '../screens/Notifications';
 import Settings from '../screens/Settings';
 import Schedule from '../screens/Schedule';
+import InfoScreen from '../screens/InfoScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -66,6 +67,14 @@ export default function TabNavigator() {
         options={{
           title: 'System',
           tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />
+        }}
+      />
+      <Tab.Screen 
+        name="InfoTab" 
+        component={InfoScreen} 
+        options={{
+          title: 'Guide',
+          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />
         }}
       />
     </Tab.Navigator>

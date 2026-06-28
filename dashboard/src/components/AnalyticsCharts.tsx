@@ -52,7 +52,7 @@ export default function AnalyticsCharts({ logs, currentMoisture, currentThreshol
         if (match) {
           const mins = parseInt(match[1], 10);
           const secs = parseInt(match[2], 10);
-          const durationMins = mins + (secs / 60);
+          const durationMins = mins + (secs / 65);
 
           if (dailyData[dateKey]) {
             dailyData[dateKey].duration += Math.round(durationMins * 10) / 10;
@@ -131,75 +131,76 @@ export default function AnalyticsCharts({ logs, currentMoisture, currentThreshol
 
   return (
     <div 
-      className="rounded-2xl p-6 border shadow-xl flex flex-col relative overflow-hidden transition-all duration-300 lg:col-span-2"
+      className="rounded-xl p-5 border flex flex-col lg:col-span-2"
       style={{ 
         backgroundColor: theme.cardBg, 
-        borderColor: theme.border,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardShadow,
         color: theme.text 
       }}
     >
       <div 
-        className="w-full flex items-center justify-between mb-6 pb-3 border-b transition-all duration-300"
-        style={{ borderBottomColor: theme.border }}
+        className="w-full flex items-center justify-between mb-5 pb-3 border-b"
+        style={{ borderBottomColor: theme.cardBorder }}
       >
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5" style={{ color: theme.primary }} />
-          <h2 className="text-sm font-bold tracking-widest uppercase">Irrigation Analytics</h2>
+          <BarChart3 className="w-4 h-4" style={{ color: theme.primary }} />
+          <h2 className="text-sm font-semibold">Irrigation Analytics</h2>
         </div>
-        <span className="text-[10px] font-black tracking-widest uppercase" style={{ color: theme.subText }}>
+        <span className="text-xs" style={{ color: theme.subText }}>
           Telemetry Insights
         </span>
       </div>
 
       {/* OVERVIEW STATS ROW */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <div 
-          className="border rounded-xl p-4 flex flex-col relative transition-all"
-          style={{ backgroundColor: theme.inputBg, borderColor: theme.border }}
+          className="border rounded-lg p-3.5 flex flex-col relative"
+          style={{ backgroundColor: theme.inputBg, borderColor: theme.cardBorder }}
         >
-          <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: theme.subText }}>Today's Watering</span>
-          <span className="text-2xl font-black mt-1.5" style={{ color: theme.text }}>{stats.todayDuration} <span className="text-xs font-bold" style={{ color: theme.primary }}>mins</span></span>
-          <Timer className="absolute w-4 h-4 top-4 right-4 opacity-55" style={{ color: theme.text }} />
+          <span className="text-[10px] font-semibold uppercase" style={{ color: theme.subText }}>Today's Watering</span>
+          <span className="text-xl font-bold mt-1" style={{ color: theme.text }}>{stats.todayDuration} <span className="text-xs font-normal" style={{ color: theme.subText }}>mins</span></span>
+          <Timer className="absolute w-4 h-4 top-3 right-3 opacity-30" style={{ color: theme.text }} />
         </div>
 
         <div 
-          className="border rounded-xl p-4 flex flex-col relative transition-all"
-          style={{ backgroundColor: theme.inputBg, borderColor: theme.border }}
+          className="border rounded-lg p-3.5 flex flex-col relative"
+          style={{ backgroundColor: theme.inputBg, borderColor: theme.cardBorder }}
         >
-          <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: theme.subText }}>This Week</span>
-          <span className="text-2xl font-black mt-1.5" style={{ color: theme.text }}>{stats.weekDuration} <span className="text-xs font-bold" style={{ color: theme.primary }}>mins</span></span>
-          <Timer className="absolute w-4 h-4 top-4 right-4 opacity-55" style={{ color: theme.text }} />
+          <span className="text-[10px] font-semibold uppercase" style={{ color: theme.subText }}>This Week</span>
+          <span className="text-xl font-bold mt-1" style={{ color: theme.text }}>{stats.weekDuration} <span className="text-xs font-normal" style={{ color: theme.subText }}>mins</span></span>
+          <Timer className="absolute w-4 h-4 top-3 right-3 opacity-30" style={{ color: theme.text }} />
         </div>
 
         <div 
-          className="border rounded-xl p-4 flex flex-col relative transition-all"
-          style={{ backgroundColor: theme.inputBg, borderColor: theme.border }}
+          className="border rounded-lg p-3.5 flex flex-col relative"
+          style={{ backgroundColor: theme.inputBg, borderColor: theme.cardBorder }}
         >
-          <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: theme.subText }}>This Month</span>
-          <span className="text-2xl font-black mt-1.5" style={{ color: theme.text }}>{stats.monthDuration} <span className="text-xs font-bold" style={{ color: theme.primary }}>mins</span></span>
-          <Timer className="absolute w-4 h-4 top-4 right-4 opacity-55" style={{ color: theme.text }} />
+          <span className="text-[10px] font-semibold uppercase" style={{ color: theme.subText }}>This Month</span>
+          <span className="text-xl font-bold mt-1" style={{ color: theme.text }}>{stats.monthDuration} <span className="text-xs font-normal" style={{ color: theme.subText }}>mins</span></span>
+          <Timer className="absolute w-4 h-4 top-3 right-3 opacity-30" style={{ color: theme.text }} />
         </div>
 
         <div 
-          className="border rounded-xl p-4 flex flex-col relative transition-all"
-          style={{ backgroundColor: theme.inputBg, borderColor: theme.border }}
+          className="border rounded-lg p-3.5 flex flex-col relative"
+          style={{ backgroundColor: theme.inputBg, borderColor: theme.cardBorder }}
         >
-          <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: theme.subText }}>Watering Cycles</span>
-          <span className="text-2xl font-black mt-1.5" style={{ color: theme.text }}>{stats.totalCycles} <span className="text-xs font-bold" style={{ color: theme.primary }}>cycles</span></span>
-          <RefreshCw className="absolute w-4 h-4 top-4 right-4 opacity-55" style={{ color: theme.text }} />
+          <span className="text-[10px] font-semibold uppercase" style={{ color: theme.subText }}>Watering Cycles</span>
+          <span className="text-xl font-bold mt-1" style={{ color: theme.text }}>{stats.totalCycles} <span className="text-xs font-normal" style={{ color: theme.subText }}>cycles</span></span>
+          <RefreshCw className="absolute w-4 h-4 top-3 right-3 opacity-30" style={{ color: theme.text }} />
         </div>
       </div>
 
       {/* CHARTS CONTAINER GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         
         {/* CHART 1: WATERING TRENDS */}
         <div 
-          className="border rounded-xl p-4 flex flex-col h-[280px] transition-all"
-          style={{ backgroundColor: theme.inputBg + '40', borderColor: theme.border }}
+          className="border rounded-lg p-4 flex flex-col h-[260px]"
+          style={{ backgroundColor: theme.inputBg, borderColor: theme.cardBorder }}
         >
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-xs font-black tracking-wider uppercase" style={{ color: theme.text }}>Daily Irrigation Duration</h3>
+            <h3 className="text-xs font-semibold uppercase" style={{ color: theme.text }}>Daily Irrigation Duration</h3>
             <LineChart className="w-4 h-4" style={{ color: theme.primary }} />
           </div>
           <div className="flex-1 w-full text-xs">
@@ -207,17 +208,16 @@ export default function AnalyticsCharts({ logs, currentMoisture, currentThreshol
               <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorDuration" cx="0" cy="0" r="1" fx="0" fy="0">
-                    <stop offset="5%" stopColor={theme.primary} stopOpacity={0.4}/>
+                    <stop offset="5%" stopColor={theme.primary} stopOpacity={0.2}/>
                     <stop offset="95%" stopColor={theme.primary} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="name" stroke={theme.subText} tickLine={false} />
                 <YAxis stroke={theme.subText} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderRadius: '12px', color: theme.text }} 
-                  labelClassName="font-extrabold uppercase text-[10px] tracking-wider text-red-500"
+                  contentStyle={{ backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderRadius: '8px', color: theme.text }} 
                 />
-                <Area type="monotone" dataKey="duration" name="Duration (min)" stroke={theme.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorDuration)" />
+                <Area type="monotone" dataKey="duration" name="Duration (min)" stroke={theme.primary} strokeWidth={2} fillOpacity={1} fill="url(#colorDuration)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -225,11 +225,11 @@ export default function AnalyticsCharts({ logs, currentMoisture, currentThreshol
 
         {/* CHART 2: MOISTURE VS THRESHOLD */}
         <div 
-          className="border rounded-xl p-4 flex flex-col h-[280px] transition-all"
-          style={{ backgroundColor: theme.inputBg + '40', borderColor: theme.border }}
+          className="border rounded-lg p-4 flex flex-col h-[260px]"
+          style={{ backgroundColor: theme.inputBg, borderColor: theme.cardBorder }}
         >
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-xs font-black tracking-wider uppercase" style={{ color: theme.text }}>Moisture vs Auto Threshold</h3>
+            <h3 className="text-xs font-semibold uppercase" style={{ color: theme.text }}>Moisture vs Auto Threshold</h3>
             <Layers className="w-4 h-4" style={{ color: theme.primary }} />
           </div>
           <div className="flex-1 w-full text-xs">
@@ -238,11 +238,10 @@ export default function AnalyticsCharts({ logs, currentMoisture, currentThreshol
                 <XAxis dataKey="time" stroke={theme.subText} tickLine={false} />
                 <YAxis stroke={theme.subText} tickLine={false} domain={[0, 1024]} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderRadius: '12px', color: theme.text }}
-                  labelClassName="font-extrabold uppercase text-[10px] tracking-wider text-blue-500"
+                  contentStyle={{ backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderRadius: '8px', color: theme.text }}
                 />
-                <CartesianGrid stroke={theme.border} strokeDasharray="3 3" opacity={0.3} />
-                <Area type="monotone" dataKey="Moisture" name="ADC Moisture" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={2} />
+                <CartesianGrid stroke={theme.cardBorder} strokeDasharray="3 3" opacity={0.3} />
+                <Area type="monotone" dataKey="Moisture" name="ADC Moisture" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={2} />
                 <Line type="monotone" dataKey="Threshold" name="Auto Limits" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={false} />
               </ComposedChart>
             </ResponsiveContainer>

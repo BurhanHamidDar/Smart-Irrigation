@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, Modal, Switch, useColorScheme, Alert, Platform, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, Modal, Switch, useColorScheme, Alert, Platform, StatusBar, ActivityIndicator } from 'react-native';
 import { ref, onValue, set } from 'firebase/database';
 import { database } from '../config/firebase';
-import { Clock, Plus, Trash2, CalendarClock } from 'lucide-react-native';
+import { Clock, Plus, Trash2, CalendarClock, X, ArrowLeft } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-export default function Schedule() {
+export default function Schedule({ navigation }) {
   const isDark = useColorScheme() === 'dark';
   const theme = isDark ? darkTheme : lightTheme;
 
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [startTime, setStartTime] = useState(new Date());
   const [stopTime, setStopTime] = useState(new Date());
@@ -72,7 +71,6 @@ export default function Schedule() {
     set(ref(database, 'state/schedules'), newSchedules);
     setModalVisible(false);
     
-    // Reset modal state
     setStartTime(new Date());
     setStopTime(new Date());
   };
@@ -86,13 +84,15 @@ export default function Schedule() {
   const renderItem = ({ item, index }) => (
     <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
       <View style={styles.cardInfo}>
-        <Clock color={item.enabled ? theme.primary : theme.subText} size={24} />
+        <View style={[styles.iconContainer, { backgroundColor: item.enabled ? theme.primaryLight : theme.inputBg }]}>
+          <Clock color={item.enabled ? theme.primary : theme.subText} size={20} />
+        </View>
         <View style={styles.timeContainer}>
           <Text style={[styles.timeText, { color: item.enabled ? theme.text : theme.subText }]}>
             {formatTime(item.startHour, item.startMinute)}
           </Text>
           <Text style={[styles.durationText, { color: theme.subText }]}>
-            to {formatTime(item.stopHour, item.stopMinute)}
+            until {formatTime(item.stopHour, item.stopMinute)}
           </Text>
         </View>
       </View>
@@ -105,30 +105,37 @@ export default function Schedule() {
           style={{ marginRight: 10 }}
         />
         <TouchableOpacity onPress={() => handleDelete(index)} style={styles.deleteBtn}>
-          <Trash2 color="#ef4444" size={20} />
+          <Trash2 color={theme.danger} size={18} />
         </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
-    <ImageBackground 
-      source={require('../../assets/orchard_bg.png')} 
-      style={styles.background}
-      blurRadius={Platform.OS === 'ios' ? 8 : 4}
-    >
-      <View style={[styles.overlay, { backgroundColor: theme.overlayBg }]} />
-      <SafeAreaView style={styles.container}>
-        <View style={[styles.header, { backgroundColor: 'rgba(255, 255, 255, 0.8)', borderBottomColor: theme.primary }]}>
-          <Text style={[styles.title, { color: '#14532d' }]}>Automations</Text>
-          <TouchableOpacity 
-            style={[styles.addBtn, { backgroundColor: theme.primary, borderRadius: 8 }]}
-            onPress={() => setModalVisible(true)}
-          >
-            <Plus color="#ffffff" size={24} />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.pageBg }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.cardBg} />
+      
+      <View style={[styles.header, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <ArrowLeft color={theme.text} size={20} />
           </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.text }]}>Schedules</Text>
         </View>
+        <TouchableOpacity 
+          style={[styles.addBtn, { backgroundColor: theme.primary }]}
+          onPress={() => setModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Plus color="#ffffff" size={18} />
+        </TouchableOpacity>
+      </View>
 
+      {loading ? (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      ) : (
         <FlatList
           data={schedules}
           keyExtractor={(_, index) => index.toString()}
@@ -136,170 +143,180 @@ export default function Schedule() {
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <CalendarClock color={theme.subText} size={48} />
+              <CalendarClock color={theme.subText} size={36} style={{ opacity: 0.5, marginBottom: 12 }} />
               <Text style={[styles.emptyText, { color: theme.subText }]}>No schedules configured.</Text>
             </View>
           }
         />
+      )}
 
-        {/* ADD SCHEDULE MODAL */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+      {/* ADD SCHEDULE MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>New Schedule</Text>
-              
-              <View style={styles.modalRow}>
-                <Text style={[styles.modalLabel, { color: theme.text }]}>Start Time:</Text>
-                {Platform.OS === 'android' ? (
-                  <TouchableOpacity 
-                    style={[styles.pickerBtn, { borderColor: theme.border }]} 
-                    onPress={() => setShowStartPicker(true)}
-                  >
-                    <Text style={{ color: theme.text, fontWeight: 'bold' }}>
-                      {formatTime(startTime.getHours(), startTime.getMinutes())}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <DateTimePicker
-                    value={startTime}
-                    mode="time"
-                    is24Hour={false}
-                    display="default"
-                    onChange={(event, date) => {
-                      if (date) setStartTime(date);
-                    }}
-                    style={{ width: 100 }}
-                  />
-                )}
-
-                {showStartPicker && Platform.OS === 'android' && (
-                  <DateTimePicker
-                    value={startTime}
-                    mode="time"
-                    is24Hour={false}
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowStartPicker(false);
-                      if (date) setStartTime(date);
-                    }}
-                  />
-                )}
-              </View>
-
-              <View style={styles.modalRow}>
-                <Text style={[styles.modalLabel, { color: theme.text }]}>Stop Time:</Text>
-                {Platform.OS === 'android' ? (
-                  <TouchableOpacity 
-                    style={[styles.pickerBtn, { borderColor: theme.border }]} 
-                    onPress={() => setShowStopPicker(true)}
-                  >
-                    <Text style={{ color: theme.text, fontWeight: 'bold' }}>
-                      {formatTime(stopTime.getHours(), stopTime.getMinutes())}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <DateTimePicker
-                    value={stopTime}
-                    mode="time"
-                    is24Hour={false}
-                    display="default"
-                    onChange={(event, date) => {
-                      if (date) setStopTime(date);
-                    }}
-                    style={{ width: 100 }}
-                  />
-                )}
-
-                {showStopPicker && Platform.OS === 'android' && (
-                  <DateTimePicker
-                    value={stopTime}
-                    mode="time"
-                    is24Hour={false}
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowStopPicker(false);
-                      if (date) setStopTime(date);
-                    }}
-                  />
-                )}
-              </View>
-
-              <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <X color={theme.text} size={20} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalRow}>
+              <Text style={[styles.modalLabel, { color: theme.text }]}>Start Time:</Text>
+              {Platform.OS === 'android' ? (
                 <TouchableOpacity 
-                  style={[styles.actionBtn, styles.cancelBtn]} 
-                  onPress={() => setModalVisible(false)}
+                  style={[styles.pickerBtn, { borderColor: theme.inputBorder, backgroundColor: theme.inputBg }]} 
+                  onPress={() => setShowStartPicker(true)}
                 >
-                  <Text style={styles.cancelBtnText}>CANCEL</Text>
+                  <Text style={{ color: theme.text, fontWeight: '600', fontSize: 14 }}>
+                    {formatTime(startTime.getHours(), startTime.getMinutes())}
+                  </Text>
                 </TouchableOpacity>
+              ) : (
+                <DateTimePicker
+                  value={startTime}
+                  mode="time"
+                  is24Hour={false}
+                  display="default"
+                  onChange={(event, date) => {
+                    if (date) setStartTime(date);
+                  }}
+                  style={{ width: 100 }}
+                />
+              )}
+
+              {showStartPicker && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={startTime}
+                  mode="time"
+                  is24Hour={false}
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowStartPicker(false);
+                    if (date) setStartTime(date);
+                  }}
+                />
+              )}
+            </View>
+
+            <View style={styles.modalRow}>
+              <Text style={[styles.modalLabel, { color: theme.text }]}>Stop Time:</Text>
+              {Platform.OS === 'android' ? (
                 <TouchableOpacity 
-                  style={[styles.actionBtn, styles.saveBtn, { backgroundColor: theme.primary }]} 
-                  onPress={handleAddSchedule}
+                  style={[styles.pickerBtn, { borderColor: theme.inputBorder, backgroundColor: theme.inputBg }]} 
+                  onPress={() => setShowStopPicker(true)}
                 >
-                  <Text style={styles.saveBtnText}>SAVE</Text>
+                  <Text style={{ color: theme.text, fontWeight: '600', fontSize: 14 }}>
+                    {formatTime(stopTime.getHours(), stopTime.getMinutes())}
+                  </Text>
                 </TouchableOpacity>
-              </View>
+              ) : (
+                <DateTimePicker
+                  value={stopTime}
+                  mode="time"
+                  is24Hour={false}
+                  display="default"
+                  onChange={(event, date) => {
+                    if (date) setStopTime(date);
+                  }}
+                  style={{ width: 100 }}
+                />
+              )}
+
+              {showStopPicker && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={stopTime}
+                  mode="time"
+                  is24Hour={false}
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowStopPicker(false);
+                    if (date) setStopTime(date);
+                  }}
+                />
+              )}
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.cancelBtn, { borderColor: theme.border }]} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={[styles.cancelBtnText, { color: theme.subText }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.saveBtn, { backgroundColor: theme.primary }]} 
+                onPress={handleAddSchedule}
+              >
+                <Text style={styles.saveBtnText}>Save Schedule</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-      </SafeAreaView>
-    </ImageBackground>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const lightTheme = {
-  overlayBg: 'rgba(240, 253, 244, 0.85)',
-  cardBg: 'rgba(255, 255, 255, 0.95)',
-  text: '#14532d',
-  subText: '#166534',
-  border: '#bbf7d0',
-  primary: '#dc2626',
-  switchOff: '#cbd5e1',
+  pageBg: '#f4f6f0',
+  cardBg: '#ffffff',
+  text: '#1a2e1c',
+  subText: '#6b7b6e',
+  border: '#e8eceb',
+  inputBg: '#f4f6f0',
+  inputBorder: '#dde3de',
+  primary: '#4a7c59',
+  primaryLight: '#eaf2ec',
+  switchOff: '#dde3de',
+  danger: '#c0392b'
 };
 
 const darkTheme = {
-  overlayBg: 'rgba(2, 44, 34, 0.85)',
-  cardBg: 'rgba(2, 44, 34, 0.95)',
-  text: '#f0fdf4',
-  subText: '#a7f3d0',
-  border: '#065f46',
-  primary: '#ef4444',
-  switchOff: '#475569',
+  pageBg: '#141a15',
+  cardBg: '#1e2720',
+  text: '#e8ede9',
+  subText: '#8a9e8d',
+  border: '#2a3a2d',
+  inputBg: '#162019',
+  inputBorder: '#2a3a2d',
+  primary: '#5a9469',
+  primaryLight: '#1a2e1c',
+  switchOff: '#2a3a2d',
+  danger: '#e74c3c'
 };
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   container: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    marginRight: 12,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontSize: 18,
+    fontWeight: '700',
   },
-  addBtn: { padding: 4 },
+  addBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   listContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 20,
+    padding: 16,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -307,8 +324,8 @@ const styles = StyleSheet.create({
     marginTop: 60,
   },
   emptyText: {
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: 10,
+    fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
@@ -316,93 +333,104 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 12,
     marginBottom: 12,
-    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   cardInfo: {
     flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  timeContainer: { marginLeft: 16 },
+  timeContainer: { marginLeft: 12 },
   timeText: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
   },
   durationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 2,
   },
-  deleteBtn: { padding: 8 },
+  deleteBtn: { padding: 6 },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     width: '85%',
-    padding: 24,
-    borderRadius: 4,
+    padding: 20,
+    borderRadius: 12,
     borderWidth: 1,
-    elevation: 10,
+    elevation: 6,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    marginBottom: 20,
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
   },
   modalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   modalLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   pickerBtn: {
     borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: 8,
   },
   actionBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 4,
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 8,
+    marginHorizontal: 6,
   },
   cancelBtn: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#94a3b8',
   },
-  saveBtn: { elevation: 2 },
+  saveBtn: {},
   cancelBtnText: {
-    color: '#94a3b8',
-    fontWeight: 'bold',
-    letterSpacing: 1,
+    fontWeight: '600',
+    fontSize: 13,
   },
   saveBtnText: {
     color: '#ffffff',
-    fontWeight: 'bold',
-    letterSpacing: 1,
+    fontWeight: '600',
+    fontSize: 13,
   }
 });

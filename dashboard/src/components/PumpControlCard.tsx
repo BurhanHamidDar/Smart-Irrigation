@@ -86,42 +86,31 @@ export default function PumpControlCard({
 
   return (
     <div 
-      className="rounded-2xl p-6 border shadow-xl flex flex-col relative overflow-hidden group transition-all duration-300"
+      className="rounded-xl p-5 border flex flex-col relative overflow-hidden"
       style={{ 
         backgroundColor: theme.cardBg, 
-        borderColor: theme.border,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardShadow,
         color: theme.text 
       }}
     >
-      {/* Background active glow */}
-      {isPumpActive && (
-        <div 
-          className="absolute w-64 h-64 rounded-full blur-3xl -top-20 -right-20 animate-pulse opacity-15"
-          style={{ backgroundColor: theme.primary }}
-        ></div>
-      )}
-      {pumpProtection.triggered && (
-        <div className="absolute w-64 h-64 rounded-full bg-red-600/10 blur-3xl -top-20 -right-20 animate-pulse"></div>
-      )}
-
       <div 
-        className="w-full flex items-center justify-between mb-4 pb-3 border-b transition-all duration-300"
-        style={{ borderBottomColor: theme.border }}
+        className="w-full flex items-center justify-between mb-4 pb-3 border-b"
+        style={{ borderBottomColor: theme.cardBorder }}
       >
         <div className="flex items-center gap-2">
           <Activity 
-            className={`w-5 h-5 transition-colors ${isPumpActive ? 'animate-spin' : ''}`}
+            className={`w-4 h-4 ${isPumpActive ? 'animate-spin' : ''}`}
             style={{ color: isPumpActive ? theme.primary : theme.subText }}
           />
-          <h2 className="text-sm font-bold tracking-widest uppercase">Pump Control</h2>
+          <h2 className="text-sm font-semibold">Pump Control</h2>
         </div>
         
         <span 
-          className="text-[10px] font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full border transition-all duration-300"
+          className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
           style={{ 
-            backgroundColor: theme.inputBg, 
-            borderColor: isPumpActive ? theme.primary : theme.border, 
-            color: isPumpActive ? theme.primary : theme.subText
+            backgroundColor: isPumpActive ? '#eaf7f0' : theme.inputBg, 
+            color: isPumpActive ? '#2e7d52' : theme.subText
           }}
         >
           {isPumpActive ? 'Running' : 'Standby'}
@@ -130,24 +119,27 @@ export default function PumpControlCard({
 
       {/* MOTOR PROTECTION TRIGGERED BANNER */}
       {pumpProtection.triggered && (
-        <div className="bg-red-950/20 border border-red-500/30 rounded-xl p-4 mb-5 flex flex-col gap-3">
+        <div 
+          className="border rounded-lg p-4 mb-4 flex flex-col gap-3"
+          style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca', color: '#c0392b' }}
+        >
           <div className="flex gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-red-600" />
             <div>
-              <h3 className="text-xs font-black tracking-wider uppercase text-red-200">
+              <h3 className="text-xs font-semibold uppercase">
                 Pump Protection Engaged
               </h3>
-              <p className="text-xs text-red-300 mt-1 leading-relaxed">
+              <p className="text-xs mt-1 leading-relaxed">
                 Pump shut down automatically to prevent motor damage after running continuously for {maxRuntimeMinutes} minutes.
               </p>
             </div>
           </div>
           <button
             onClick={resetPumpProtection}
-            className="w-full py-2 text-white font-extrabold text-xs tracking-widest rounded-lg transition-all shadow-lg shadow-red-950/50 uppercase border border-red-500/20"
+            className="w-full py-2 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
             style={{ backgroundColor: theme.primary }}
           >
-            RESET MOTOR PROTECTION
+            Reset Motor Protection
           </button>
         </div>
       )}
@@ -155,28 +147,28 @@ export default function PumpControlCard({
       {/* ACTIVE RUNNING COUNTDOWN TIMER */}
       {!pumpProtection.triggered && isPumpActive && pumpStartTimeEpoch > 0 && (
         <div 
-          className="border rounded-xl p-4 mb-5 flex justify-between items-center animate-pulse transition-all duration-300"
+          className="border rounded-lg p-3 mb-4 flex justify-between items-center"
           style={{ 
             backgroundColor: theme.inputBg, 
-            borderColor: theme.border 
+            borderColor: theme.cardBorder 
           }}
         >
-          <div className="flex items-center gap-2.5">
-            <Timer className="w-5 h-5" style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <Timer className="w-4 h-4" style={{ color: theme.primary }} />
             <div>
               <h4 
-                className="text-[10px] font-black tracking-widest uppercase"
+                className="text-[10px] font-semibold uppercase"
                 style={{ color: theme.subText }}
               >
                 Auto-Shutdown Timer
               </h4>
-              <span className="font-bold text-xs" style={{ color: theme.text }}>
+              <span className="font-medium text-xs" style={{ color: theme.text }}>
                 Active Cycle Protection
               </span>
             </div>
           </div>
           <span 
-            className="text-xl font-black font-mono tracking-wider"
+            className="text-lg font-bold font-mono"
             style={{ color: theme.primary }}
           >
             {formatCountdown(timeRemainingSecs)}
@@ -189,26 +181,26 @@ export default function PumpControlCard({
         <button
           onClick={handleToggleClick}
           disabled={autoMode === 1 || pumpProtection.triggered}
-          className={`w-32 h-32 rounded-full border-4 flex flex-col items-center justify-center gap-2 shadow-2xl transition-all duration-300 select-none cursor-pointer focus:outline-none ${
+          className={`w-28 h-28 rounded-full border-2 flex flex-col items-center justify-center gap-2 shadow-sm transition-all select-none cursor-pointer focus:outline-none ${
             autoMode === 1 || pumpProtection.triggered
               ? 'opacity-40 cursor-not-allowed'
-              : 'hover:scale-[1.03] active:scale-[0.98]'
+              : 'hover:opacity-90 active:scale-95'
           }`}
           style={{
             backgroundColor: isPumpActive ? theme.primary : theme.inputBg,
-            borderColor: isPumpActive ? 'rgba(255,255,255,0.4)' : theme.border,
+            borderColor: isPumpActive ? theme.primary : theme.cardBorder,
             color: isPumpActive ? '#ffffff' : theme.text
           }}
         >
-          <Power className="w-10 h-10" strokeWidth={2.5} />
-          <span className="text-xs font-black tracking-widest uppercase">
-            {isPumpActive ? 'TURN OFF' : 'TURN ON'}
+          <Power className="w-8 h-8" strokeWidth={2.5} />
+          <span className="text-xs font-semibold">
+            {isPumpActive ? 'Turn Off' : 'Turn On'}
           </span>
         </button>
 
         {autoMode === 1 && (
           <p 
-            className="text-[10px] font-extrabold tracking-wider uppercase text-center mt-5"
+            className="text-[11px] font-medium text-center mt-4"
             style={{ color: theme.subText }}
           >
             Manual override disabled in Auto mode
@@ -218,54 +210,54 @@ export default function PumpControlCard({
 
       {/* RAIN WARNING MODAL DIALOG */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
           <div 
-            className="max-w-sm w-full rounded-2xl p-6 border shadow-2xl animate-scaleUp transition-all duration-300"
+            className="max-w-sm w-full rounded-xl p-5 border shadow-lg"
             style={{ 
               backgroundColor: theme.cardBg, 
-              borderColor: theme.border,
+              borderColor: theme.cardBorder,
               color: theme.text 
             }}
           >
             <div 
-              className="flex items-center gap-3 mb-4 pb-2 border-b transition-all"
+              className="flex items-center gap-2.5 mb-3 pb-2 border-b"
               style={{ 
                 color: theme.primary, 
-                borderBottomColor: theme.border 
+                borderBottomColor: theme.cardBorder 
               }}
             >
-              <AlertTriangle className="w-6 h-6 shrink-0" />
-              <h3 className="text-base font-black tracking-wider uppercase">
-                Rain Forecast Warning!
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <h3 className="text-sm font-semibold uppercase">
+                Rain Forecast Warning
               </h3>
             </div>
             
-            <p className="text-xs leading-relaxed opacity-90 mb-6">
-              There is a <span className="font-extrabold" style={{ color: theme.primary }}>{rainChance}%</span> chance of rainfall predicted within the next <span className="font-bold">{forecastWindowHours} hours</span> in your orchard area. 
+            <p className="text-xs leading-relaxed mb-5" style={{ color: theme.subText }}>
+              There is a <span className="font-semibold" style={{ color: theme.text }}>{rainChance}%</span> chance of rain forecast within the next {forecastWindowHours} hours in your orchard area. 
               <br/><br/>
-              Are you sure you want to engage the manual irrigation override?
+              Are you sure you want to turn on manual watering?
             </p>
 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2.5 rounded-lg border font-bold text-xs tracking-wider uppercase transition-all"
+                className="flex-1 py-2 rounded-lg border font-medium text-xs transition-colors"
                 style={{ 
-                  borderColor: theme.border, 
+                  borderColor: theme.cardBorder, 
                   color: theme.subText 
                 }}
               >
-                CANCEL
+                Cancel
               </button>
               <button
                 onClick={confirmWatering}
-                className="flex-1 py-2.5 rounded-lg text-white font-extrabold text-xs tracking-wider uppercase shadow-lg border transition-all"
+                className="flex-1 py-2 rounded-lg text-white font-medium text-xs transition-colors"
                 style={{ 
                   backgroundColor: theme.primary,
                   borderColor: theme.primary 
                 }}
               >
-                CONTINUE
+                Continue
               </button>
             </div>
           </div>

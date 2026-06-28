@@ -3,83 +3,113 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 
 export interface AppTheme {
-  overlayBg: string;
+  // Page background
+  pageBg: string;
+  // Sidebar
+  sidebarBg: string;
+  sidebarText: string;
+  sidebarSubText: string;
+  sidebarActive: string;
+  sidebarActiveBg: string;
+  // Cards
   cardBg: string;
+  cardBorder: string;
+  cardShadow: string;
+  // Content
   text: string;
   subText: string;
-  border: string;
-  primary: string;
-  danger: string;
   inputBg: string;
+  inputBorder: string;
+  // Accent
+  primary: string;
+  primaryHover: string;
+  primaryLight: string;
+  danger: string;
+  // Legacy compat
+  border: string;
+  overlayBg: string;
 }
 
 export const lightTheme: AppTheme = {
-  overlayBg: 'rgba(240, 253, 244, 0.85)',
-  cardBg: 'rgba(255, 255, 255, 0.95)',
-  text: '#14532d',
-  subText: '#166534',
-  border: '#bbf7d0',
-  primary: '#dc2626',
-  danger: '#ef4444',
-  inputBg: '#f0fdf4',
+  pageBg: '#f4f6f0',
+  sidebarBg: '#1e2420',
+  sidebarText: '#e8ede9',
+  sidebarSubText: '#8a9e8d',
+  sidebarActive: '#ffffff',
+  sidebarActiveBg: '#4a7c59',
+  cardBg: '#ffffff',
+  cardBorder: '#e8eceb',
+  cardShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+  text: '#1a2e1c',
+  subText: '#6b7b6e',
+  inputBg: '#f4f6f0',
+  inputBorder: '#dde3de',
+  primary: '#4a7c59',
+  primaryHover: '#3d6a4a',
+  primaryLight: '#eaf2ec',
+  danger: '#c0392b',
+  border: '#e8eceb',
+  overlayBg: '#f4f6f0',
 };
 
 export const darkTheme: AppTheme = {
-  overlayBg: 'rgba(2, 44, 34, 0.85)',
-  cardBg: 'rgba(2, 44, 34, 0.95)',
-  text: '#f0fdf4',
-  subText: '#a7f3d0',
-  border: '#065f46',
-  primary: '#ef4444',
-  danger: '#ef4444',
-  inputBg: '#064e3b',
+  pageBg: '#141a15',
+  sidebarBg: '#0e1410',
+  sidebarText: '#e8ede9',
+  sidebarSubText: '#6b7b6e',
+  sidebarActive: '#ffffff',
+  sidebarActiveBg: '#4a7c59',
+  cardBg: '#1e2720',
+  cardBorder: '#2a3a2d',
+  cardShadow: '0 1px 3px rgba(0,0,0,0.3)',
+  text: '#e8ede9',
+  subText: '#8a9e8d',
+  inputBg: '#162019',
+  inputBorder: '#2a3a2d',
+  primary: '#5a9469',
+  primaryHover: '#4a7c59',
+  primaryLight: '#1a2e1c',
+  danger: '#e74c3c',
+  border: '#2a3a2d',
+  overlayBg: '#1e2720',
 };
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   
-  // Theme state: initialized from localStorage or system preference
   const [isDark, setIsDark] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  // Authenticate & retrieve active session from LocalStorage
   useEffect(() => {
     const session = localStorage.getItem('isLoggedIn');
-    if (session === 'true') {
-      setIsLoggedIn(true);
-    }
+    if (session === 'true') setIsLoggedIn(true);
     setCheckingSession(false);
   }, []);
 
-  // Request browser permission for system push notifications
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-          console.log("Browser push notification access approved by officer.");
-        }
-      });
+      Notification.requestPermission();
     }
   }, []);
 
-  // Sync theme changes to localStorage
   useEffect(() => {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    document.body.style.backgroundColor = isDark ? '#141a15' : '#f4f6f0';
   }, [isDark]);
 
   const theme = isDark ? darkTheme : lightTheme;
 
   if (checkingSession) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center transition-colors duration-300"
-        style={{ backgroundColor: theme.cardBg }}
-      >
-        <div className="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.pageBg }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: theme.primary, borderTopColor: 'transparent' }}></div>
+          <span className="text-sm font-medium" style={{ color: theme.subText }}>Loading AgroFlow...</span>
+        </div>
       </div>
     );
   }

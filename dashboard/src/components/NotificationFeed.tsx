@@ -52,90 +52,86 @@ export default function NotificationFeed({ logs, theme }: NotificationFeedProps)
     }
   };
 
-  const getLogCardStyles = (type: 'info' | 'alert' | 'success') => {
+  const getDotColor = (type: 'info' | 'alert' | 'success') => {
     switch (type) {
       case 'alert':
-        return {
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          borderColor: 'rgba(239, 68, 68, 0.25)',
-          color: theme.text
-        };
+        return '#ef4444'; // red-500
       case 'success':
-        return {
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          borderColor: 'rgba(16, 185, 129, 0.25)',
-          color: theme.text
-        };
+        return '#10b981'; // emerald-500
       case 'info':
       default:
-        return {
-          backgroundColor: theme.inputBg,
-          borderColor: theme.border,
-          color: theme.text
-        };
+        return '#60a5fa'; // blue-400
     }
   };
 
   return (
     <div 
-      className="rounded-2xl p-6 border shadow-xl flex flex-col relative overflow-hidden group transition-all duration-300"
+      className="rounded-xl p-5 border flex flex-col"
       style={{ 
         backgroundColor: theme.cardBg, 
-        borderColor: theme.border,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardShadow,
         color: theme.text 
       }}
     >
       <div 
-        className="w-full flex items-center justify-between mb-4 pb-3 border-b transition-all duration-300"
-        style={{ borderBottomColor: theme.border }}
+        className="w-full flex items-center justify-between mb-4 pb-3 border-b"
+        style={{ borderBottomColor: theme.cardBorder }}
       >
         <div className="flex items-center gap-2">
           <Bell className="w-5 h-5" style={{ color: theme.primary }} />
-          <h2 className="text-sm font-bold tracking-widest uppercase">System Activity Logs</h2>
+          <h2 className="text-sm font-semibold" style={{ color: theme.text }}>Activity Logs</h2>
         </div>
 
         {logs.length > 0 && (
           <button
             onClick={handleClearLogs}
-            className="p-1.5 rounded-lg hover:opacity-85 transition-all text-white border"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:opacity-80"
             style={{ 
-              backgroundColor: theme.primary, 
-              borderColor: theme.primary 
+              borderColor: theme.cardBorder, 
+              color: theme.subText,
+              backgroundColor: 'transparent'
             }}
             title="Clear All Logs"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
+            Clear
           </button>
         )}
       </div>
 
       {/* LOG FEED CONTROLLER */}
-      <div className="flex-1 space-y-3 max-h-[360px] overflow-y-auto pr-1">
+      <div className="flex-1 max-h-[360px] overflow-y-auto pr-1">
         {logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20" style={{ color: theme.subText }}>
-            <ShieldAlert className="w-12 h-12 mb-3 opacity-60" strokeWidth={1} />
-            <p className="text-xs font-bold uppercase tracking-widest">No activity logs recorded</p>
-            <span className="text-[10px] opacity-75 mt-1">Telemetry triggers will appear here</span>
+          <div className="flex flex-col items-center justify-center py-16" style={{ color: theme.subText }}>
+            <ShieldAlert className="w-10 h-10 mb-3 opacity-50" strokeWidth={1.5} />
+            <p className="text-sm font-medium">No activity logs recorded</p>
+            <span className="text-xs opacity-60 mt-1">Telemetry triggers will appear here</span>
           </div>
         ) : (
-          logs.map((log) => (
+          logs.map((log, index) => (
             <div 
               key={log.id} 
-              className="p-3.5 rounded-xl border flex gap-3 transition-all duration-300 hover:scale-[1.005]"
-              style={getLogCardStyles(log.type)}
+              className="flex items-start gap-3 py-3"
+              style={{
+                borderBottom: index < logs.length - 1 ? `1px solid ${theme.cardBorder}` : 'none',
+              }}
             >
-              {getLogIcon(log.type)}
+              <div 
+                className="w-2 h-2 rounded-full shrink-0 mt-1.5"
+                style={{ backgroundColor: getDotColor(log.type) }}
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline gap-2">
-                  <h4 className="text-xs font-black tracking-wide uppercase truncate">
+                  <h4 className="text-sm font-medium truncate" style={{ color: theme.text }}>
                     {log.title}
                   </h4>
-                  <span className="text-[9px] font-semibold shrink-0" style={{ color: theme.subText }}>
+                  <span className="text-[10px] font-medium shrink-0" style={{ color: theme.subText }}>
                     {formatRelativeTime(log.timestamp)}
                   </span>
                 </div>
                 <p 
-                  className="text-xs leading-relaxed mt-1 font-semibold"
+                  className="text-xs leading-relaxed mt-0.5"
                   style={{ color: theme.subText }}
                 >
                   {log.desc}

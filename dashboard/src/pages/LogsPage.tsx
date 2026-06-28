@@ -10,7 +10,7 @@ interface LogsPageProps {
 
 export default function LogsPage({ logs, theme }: LogsPageProps) {
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-5 animate-fadeIn">
       <NotificationFeed 
         logs={logs}
         theme={theme}

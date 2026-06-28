@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, useColorScheme, Image, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, Animated, useColorScheme, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Splash({ navigation }) {
@@ -7,24 +7,23 @@ export default function Splash({ navigation }) {
   const theme = isDark ? darkTheme : lightTheme;
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 800,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 4,
-        tension: 40,
+        friction: 6,
+        tension: 60,
         useNativeDriver: true,
       })
     ]).start();
 
-    // Check auth status while splash animation plays
     const checkAuth = async () => {
       try {
         const loggedIn = await AsyncStorage.getItem('isLoggedIn');
@@ -34,98 +33,85 @@ export default function Splash({ navigation }) {
           } else {
             navigation.replace('Login');
           }
-        }, 2500); // Maintain the splash screen presentation time
+        }, 2200);
       } catch (error) {
-        setTimeout(() => { navigation.replace('Login'); }, 2500);
+        setTimeout(() => { navigation.replace('Login'); }, 2200);
       }
     };
 
     checkAuth();
-
   }, [navigation]);
 
   return (
-    <ImageBackground 
-      source={require('../../assets/orchard_bg.png')} 
-      style={styles.background}
-    >
-      <View style={[styles.overlay, { backgroundColor: theme.overlayBg }]} />
-      <View style={styles.container}>
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
-          <View style={[styles.iconContainer, { borderColor: theme.primary }]}>
-            <Image 
-              source={require('../../assets/icon.png')} 
-              style={{ width: 100, height: 100, borderRadius: 16 }} 
-              resizeMode="contain"
-            />
-          </View>
-          <Text style={[styles.title, { color: theme.text }]}>AGROFLOW</Text>
-          <Text style={[styles.subtitle, { color: theme.subText }]}>Apple Orchard System</Text>
-          <Text style={[styles.creditText, { color: theme.subText }]}>Developed by Burhan Hamid</Text>
-        </Animated.View>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
+        <View style={[styles.iconContainer, { backgroundColor: theme.iconBg, borderColor: theme.border }]}>
+          <Image 
+            source={require('../../assets/icon.png')} 
+            style={{ width: 88, height: 88, borderRadius: 14 }} 
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={[styles.title, { color: theme.text }]}>AgroFlow</Text>
+        <Text style={[styles.subtitle, { color: theme.sub }]}>Apple Orchard System</Text>
+      </Animated.View>
+
+      <View style={styles.footer}>
+        <Text style={[styles.creditText, { color: theme.sub }]}>Developed by Burhan Hamid</Text>
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 
 const lightTheme = {
-  overlayBg: 'rgba(240, 253, 244, 0.85)',
-  text: '#14532d',
-  subText: '#166534',
-  primary: '#dc2626'
+  bg: '#f4f6f0',
+  iconBg: '#ffffff',
+  text: '#1a2e1c',
+  sub: '#6b7b6e',
+  border: '#e8eceb',
 };
 
 const darkTheme = {
-  overlayBg: 'rgba(2, 44, 34, 0.85)',
-  text: '#f0fdf4',
-  subText: '#a7f3d0',
-  primary: '#ef4444'
+  bg: '#141a15',
+  iconBg: '#1e2720',
+  text: '#e8ede9',
+  sub: '#8a9e8d',
+  border: '#2a3a2d',
 };
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconContainer: {
-    marginBottom: 24,
-    elevation: 12,
-    shadowColor: "#dc2626",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    borderWidth: 3,
+    marginBottom: 20,
+    borderWidth: 1,
     borderRadius: 18,
-    backgroundColor: '#ffffff',
+    padding: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 8,
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 32,
   },
   creditText: {
-    position: 'absolute',
-    bottom: -150,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 1,
-    opacity: 0.8,
-  }
+    fontSize: 12,
+    fontWeight: '500',
+  },
 });

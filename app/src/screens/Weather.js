@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, useColorScheme, ActivityIndicator, ImageBackground, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, useColorScheme, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../config/firebase';
-import { CloudRain, CloudSun, Cloud, Sun, Wind, Droplets, Thermometer } from 'lucide-react-native';
+import { CloudRain, CloudSun, Cloud, Sun, Wind, Droplets, Thermometer, ArrowLeft } from 'lucide-react-native';
 
-export default function Weather() {
+export default function Weather({ navigation }) {
   const isDark = useColorScheme() === 'dark';
   const theme = isDark ? darkTheme : lightTheme;
 
@@ -24,14 +24,13 @@ export default function Weather() {
 
   const getWeatherIcon = (code, color, size) => {
     if (code === undefined) return <Cloud color={color} size={size} />;
-    // WMO Weather interpretation codes
     if (code === 0) return <Sun color={color} size={size} />;
     if (code >= 1 && code <= 3) return <CloudSun color={color} size={size} />;
     if (code >= 45 && code <= 48) return <Cloud color={color} size={size} />;
     if (code >= 51 && code <= 67) return <CloudRain color={color} size={size} />;
-    if (code >= 71 && code <= 77) return <Cloud color={color} size={size} />; // Snow
+    if (code >= 71 && code <= 77) return <Cloud color={color} size={size} />;
     if (code >= 80 && code <= 82) return <CloudRain color={color} size={size} />;
-    if (code >= 95 && code <= 99) return <CloudRain color={color} size={size} />; // Thunderstorm
+    if (code >= 95 && code <= 99) return <CloudRain color={color} size={size} />;
     return <Cloud color={color} size={size} />;
   };
 
@@ -51,103 +50,117 @@ export default function Weather() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.bg }]}>
+      <View style={[styles.container, styles.center, { backgroundColor: theme.pageBg }]}>
         <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   return (
-    <ImageBackground 
-      source={require('../../assets/orchard_bg.png')} 
-      style={styles.background}
-      blurRadius={Platform.OS === 'ios' ? 8 : 4}
-    >
-      <View style={[styles.overlay, { backgroundColor: theme.overlayBg }]} />
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.content}>
-          {weatherData && !weatherData.unconfigured ? (
-            <>
-              <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-                <View style={styles.mainInfo}>
-                  {getWeatherIcon(weatherData.weatherCode, theme.primary, 80)}
-                  <Text style={[styles.tempText, { color: theme.text }]}>
-                    {weatherData.currentTemp !== undefined ? Math.round(weatherData.currentTemp) : '--'}°
-                  </Text>
-                  <Text style={[styles.conditionText, { color: theme.subText }]}>
-                    {getWeatherCondition(weatherData.weatherCode)}
-                  </Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.pageBg }]}>
+      <View style={[styles.header, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <ArrowLeft color={theme.text} size={20} />
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: theme.text }]}>Orchard Weather</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        {weatherData && !weatherData.unconfigured ? (
+          <>
+            <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+              <View style={styles.mainInfo}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  {getWeatherIcon(weatherData.weatherCode, theme.primary, 48)}
                 </View>
+                <Text style={[styles.tempText, { color: theme.text }]}>
+                  {weatherData.currentTemp !== undefined ? Math.round(weatherData.currentTemp) : '--'}°C
+                </Text>
+                <Text style={[styles.conditionText, { color: theme.text }]}>
+                  {getWeatherCondition(weatherData.weatherCode)}
+                </Text>
               </View>
-
-              <View style={styles.grid}>
-                <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-                  <CloudRain color={theme.primary} size={28} />
-                  <Text style={[styles.gridTitle, { color: theme.subText }]}>Rain Chance</Text>
-                  <Text style={[styles.gridValue, { color: theme.text }]}>{weatherData.rainChance}%</Text>
-                </View>
-
-                <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-                  <Thermometer color={theme.primary} size={28} />
-                  <Text style={[styles.gridTitle, { color: theme.subText }]}>Temperature</Text>
-                  <Text style={[styles.gridValue, { color: theme.text }]}>{weatherData.currentTemp}°C</Text>
-                </View>
-
-                <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-                  <Droplets color={theme.primary} size={28} />
-                  <Text style={[styles.gridTitle, { color: theme.subText }]}>Rain Forecast</Text>
-                  <Text style={[styles.gridValue, { color: theme.text, fontSize: 16 }]}>
-                    {weatherData.rainPredicted ? 'Incoming' : 'None Expected'}
-                  </Text>
-                </View>
-
-                <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-                  <Wind color={theme.primary} size={28} />
-                  <Text style={[styles.gridTitle, { color: theme.subText }]}>Forecast Window</Text>
-                  <Text style={[styles.gridValue, { color: theme.text }]}>Next {weatherData.forecastWindowHours} hrs</Text>
-                </View>
-              </View>
-            </>
-          ) : (
-            <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, padding: 30 }]}>
-              <Text style={[styles.conditionText, { color: theme.text, textAlign: 'center' }]}>
-                Weather data is not available. Ensure orchard location is configured in Settings.
-              </Text>
             </View>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </ImageBackground>
+
+            <View style={styles.grid}>
+              <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+                <View style={[styles.itemIcon, { backgroundColor: '#eff6ff' }]}>
+                  <CloudRain color="#3b82f6" size={20} />
+                </View>
+                <Text style={[styles.gridTitle, { color: theme.subText }]}>Rain Chance</Text>
+                <Text style={[styles.gridValue, { color: theme.text }]}>{weatherData.rainChance}%</Text>
+              </View>
+
+              <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+                <View style={[styles.itemIcon, { backgroundColor: '#eaf7f0' }]}>
+                  <Thermometer color="#2e7d52" size={20} />
+                </View>
+                <Text style={[styles.gridTitle, { color: theme.subText }]}>Temperature</Text>
+                <Text style={[styles.gridValue, { color: theme.text }]}>{weatherData.currentTemp}°C</Text>
+              </View>
+
+              <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+                <View style={[styles.itemIcon, { backgroundColor: weatherData.rainPredicted ? '#fef2f2' : '#eaf7f0' }]}>
+                  <Droplets color={weatherData.rainPredicted ? theme.danger : '#2e7d52'} size={20} />
+                </View>
+                <Text style={[styles.gridTitle, { color: theme.subText }]}>Rain Override</Text>
+                <Text style={[styles.gridValue, { color: theme.text, fontSize: 13, marginTop: 4 }]}>
+                  {weatherData.rainPredicted ? 'Triggered' : 'Inactive'}
+                </Text>
+              </View>
+
+              <View style={[styles.gridItem, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+                <View style={[styles.itemIcon, { backgroundColor: theme.primaryLight }]}>
+                  <Wind color={theme.primary} size={20} />
+                </View>
+                <Text style={[styles.gridTitle, { color: theme.subText }]}>Outlook Period</Text>
+                <Text style={[styles.gridValue, { color: theme.text, fontSize: 13, marginTop: 4 }]}>Next {weatherData.forecastWindowHours} hrs</Text>
+              </View>
+            </View>
+
+            {weatherData.rainPredicted && (
+              <View style={[styles.alertContainer, { backgroundColor: '#fef2f2', borderColor: '#fecaca' }]}>
+                <Text style={{ color: '#c0392b', fontSize: 12, lineHeight: 18, fontWeight: '500' }}>
+                  {'🌧️ Rain predicted within 12 hours. Auto irrigation has been suspended to conserve resources.'}
+                </Text>
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, padding: 30 }]}>
+            <Text style={[styles.errorText, { color: theme.subText }]}>
+              Weather coordinates unconfigured. Please enter lat/lon settings to load forecast override rules.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const lightTheme = {
-  overlayBg: 'rgba(240, 253, 244, 0.85)',
-  cardBg: 'rgba(255, 255, 255, 0.95)',
-  text: '#14532d',
-  subText: '#166534',
-  border: '#bbf7d0',
-  primary: '#dc2626'
+  pageBg: '#f4f6f0',
+  cardBg: '#ffffff',
+  text: '#1a2e1c',
+  subText: '#6b7b6e',
+  border: '#e8eceb',
+  primary: '#4a7c59',
+  primaryLight: '#eaf2ec',
+  danger: '#c0392b'
 };
 
 const darkTheme = {
-  overlayBg: 'rgba(2, 44, 34, 0.85)',
-  cardBg: 'rgba(2, 44, 34, 0.95)',
-  text: '#f0fdf4',
-  subText: '#a7f3d0',
-  border: '#065f46',
-  primary: '#ef4444'
+  pageBg: '#141a15',
+  cardBg: '#1e2720',
+  text: '#e8ede9',
+  subText: '#8a9e8d',
+  border: '#2a3a2d',
+  primary: '#5a9469',
+  primaryLight: '#1a2e1c',
+  danger: '#e74c3c'
 };
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   container: {
     flex: 1,
   },
@@ -155,32 +168,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    marginRight: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
   content: {
     padding: 16,
-    paddingTop: 32,
   },
   card: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 24,
-    marginBottom: 20,
-    elevation: 4,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
     alignItems: 'center',
   },
   mainInfo: {
     alignItems: 'center',
   },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   tempText: {
-    fontSize: 64,
-    fontWeight: '900',
-    marginTop: 10,
+    fontSize: 36,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   conditionText: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 4,
   },
   grid: {
     flexDirection: 'row',
@@ -191,20 +227,41 @@ const styles = StyleSheet.create({
     width: '48%',
     borderWidth: 1,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     marginBottom: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
     elevation: 2,
   },
+  itemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   gridTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginTop: 12,
-    marginBottom: 4,
+    fontSize: 11,
+    fontWeight: '550',
+    marginBottom: 2,
   },
   gridValue: {
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  alertContainer: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 4,
+  },
+  errorText: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
   }
 });
